@@ -1,0 +1,160 @@
+<% include partials/header.ejs %>
+<body>
+<div class="wrapper">
+
+    <% include partials/app-name.ejs %>
+
+    <!-- Sidebar -->
+    <div class="sidebar sidebar-style-2">
+        <div class="sidebar-wrapper scrollbar scrollbar-inner">
+            <div class="sidebar-content">
+                <% include partials/menu-profile.ejs %>
+                <% include partials/nav.ejs %>
+            </div>
+        </div>
+    </div>
+    <!-- End Sidebar -->
+
+    <div class="main-panel">
+        <div class="content" style="visibility: hidden">
+            <div id="message"></div>
+            <div class="page-inner">
+                <div class="page-header">
+                    <h4 class="page-title">Dashboard</h4>
+                </div>
+                <div class="row">
+                    <div class="col-sm-6 col-md-3">
+                        <div class="card card-stats card-round">
+                            <div class="card-body ">
+                                <div class="row">
+                                    <div class="col-5">
+                                        <div class="icon-big text-center">
+                                            <i class="fa fa-file-pdf text-warning"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-7 col-stats">
+                                        <div class="numbers">
+                                            <p class="card-category">Total PDFs</p>
+                                            <h4 id="total-pdfs" class="card-title"></h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-6"><!-- -->
+                        <div class="card card-stats card-round">
+                            <div class="card-body ">
+                                <div class="row">
+                                    <div class="col-5">
+                                        <div class="icon-big text-center">
+                                            <i class="fa fa-file text-success"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-7 col-stats">
+                                        <div class="numbers">
+                                            <p class="card-category">Most Accessed</p>
+                                            <h4 class="card-title"><small id="most-accessed-file"></small></h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <div class="card card-stats card-round">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-5">
+                                        <div class="icon-big text-center">
+                                            <i class="fa fa-grip-vertical text-danger"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-7 col-stats">
+                                        <div class="numbers">
+                                            <p class="card-category">Total Requests</p>
+                                            <h4 id="total-file-requests" class="card-title"></h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="card-title">Bookshelf</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table id="data-table" class="display table table-striped table-hover" >
+                                        <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>File size</th>
+                                            <th>Accessed</th>
+                                            <th>Uploaded</th>
+                                        </tr>
+                                        </thead>
+                                        <tfoot>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>File size</th>
+                                            <th>Accessed</th>
+                                            <th>Uploaded</th>
+                                        </tr>
+                                        </tfoot>
+                                        <tbody id="objects"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <% include partials/footer.ejs %>
+    </div>
+    <!-- End Custom template -->
+</div>
+<!--   Core JS Files   -->
+<script src="../assets/js/core/jquery.3.2.1.min.js"></script>
+<script src="../assets/js/core/popper.min.js"></script>
+<script src="../assets/js/core/bootstrap.min.js"></script>
+
+<!-- jQuery UI -->
+<script src="../assets/js/plugin/jquery-ui-1.12.1.custom/jquery-ui.min.js"></script>
+<script src="../assets/js/plugin/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js"></script>
+
+<!-- jQuery Scrollbar -->
+<script src="../assets/js/plugin/jquery-scrollbar/jquery.scrollbar.min.js"></script>
+
+<!-- Datatables -->
+<script src="../assets/js/plugin/datatables/datatables.min.js"></script>
+
+<!-- Bootstrap Notify -->
+<script src="../assets/js/plugin/bootstrap-notify/bootstrap-notify.min.js"></script>
+
+<!-- Sweet Alert -->
+<script src="../assets/js/plugin/sweetalert/sweetalert.min.js"></script>
+
+<!-- Atlantis JS -->
+<script src="../assets/js/atlantis.min.js"></script>
+<script src="../libs/dompurify/purify.min.js"></script>
+<script src="../app/dom.module.js"></script>
+<script src="../app/config.module.js"></script>
+<script src="../app/api.module.js"></script>
+<script src="../app/helper.module.js"></script>
+<script src="../app/http.module.js"></script>
+<script src="../app/user.module.js"></script>
+<script src="../app/home.module.js"></script>
+<script src="../app/objects.module.js"></script>
+<script src="../app/stats.module.js"></script>
+<script>
+    objectsModule.init();
+    helperModule.onLoadVisibility('.content', 250);
+</script>
+</body>
+</html>

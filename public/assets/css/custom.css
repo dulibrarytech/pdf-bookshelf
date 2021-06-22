@@ -1,0 +1,7 @@
+a {
+    color: #5a5b5f;
+}
+
+a:hover, a:focus {
+    color: #1269DB;
+}

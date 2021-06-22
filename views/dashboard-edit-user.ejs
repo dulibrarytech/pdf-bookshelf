@@ -1,0 +1,128 @@
+<% include partials/header.ejs %>
+<body>
+<div class="wrapper">
+    <div class="main-header">
+
+        <% include partials/app-name.ejs %>
+
+        <!-- Navbar Header -->
+        <nav class="navbar navbar-header navbar-expand-lg" data-background-color="dark"></nav>
+        <!-- End Navbar -->
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar sidebar-style-2">
+        <div class="sidebar-wrapper scrollbar scrollbar-inner">
+            <div class="sidebar-content">
+                <% include partials/menu-profile.ejs %>
+                <% include partials/nav.ejs %>
+            </div>
+        </div>
+    </div>
+    <!-- End Sidebar -->
+
+    <div class="main-panel">
+        <div class="content">
+            <div id="message"></div>
+            <div class="page-inner" id="edit-user" style="visibility: hidden">
+                <div class="page-header">
+                    <h4 class="page-title">Dashboard - Users</h4>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="card-title">Edit User</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="row" id="user-details">
+
+                                    <form id="user-update-form">
+                                        <input type="hidden" id="id" name="id">
+
+                                        <div class="row">
+                                            <div class="col">
+                                                <div class="form-group">
+                                                    <label for="du_id">DU ID:</label>
+                                                    <input type="text" class="form-control" id="du_id" name="du_id" required>
+                                                </div>
+                                            </div>
+                                            <div class="col">
+                                                <div class="form-group">
+                                                    <label for="email">Email Address:</label>
+                                                    <input type="email" class="form-control" id="email" name="email" required>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="first_name">First Name:</label>
+                                            <input type="text" class="form-control" id="first_name" name="first_name"
+                                                   required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="last_name">Last Name:</label>
+                                            <input type="text" class="form-control" id="last_name" name="last_name"
+                                                   required>
+                                        </div>
+                                        <br>
+                                        <label for="is_active">Active:</label>
+                                        <input type="checkbox" id="is_active" name="is_active">
+                                        <br><br>
+                                        <button type="submit" class="btn btn-default"><i class="fa fa-save"></i>&nbsp;
+                                            Save
+                                        </button>
+                                        &nbsp;&nbsp;
+                                        <a href="/dashboard/users" type="button" class="btn btn-default"><i
+                                                    class="fa fa-times"></i>&nbsp; Cancel</a>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <% include partials/footer.ejs %>
+    </div>
+    <!-- End Custom template -->
+</div>
+<!--   Core JS Files   -->
+<script src="<%= host %>assets/js/core/jquery.3.2.1.min.js"></script>
+<script src="<%= host %>assets/js/core/popper.min.js"></script>
+<script src="<%= host %>assets/js/core/bootstrap.min.js"></script>
+
+<!-- jQuery UI -->
+<script src="<%= host %>assets/js/plugin/jquery-ui-1.12.1.custom/jquery-ui.min.js"></script>
+<script src="<%= host %>assets/js/plugin/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js"></script>
+
+<!-- jQuery Scrollbar -->
+<script src="<%= host %>assets/js/plugin/jquery-scrollbar/jquery.scrollbar.min.js"></script>
+
+<!-- Datatables -->
+<script src="<%= host %>assets/js/plugin/datatables/datatables.min.js"></script>
+
+<!-- Bootstrap Notify -->
+<script src="<%= host %>assets/js/plugin/bootstrap-notify/bootstrap-notify.min.js"></script>
+
+<!-- Sweet Alert -->
+<script src="<%= host %>assets/js/plugin/sweetalert/sweetalert.min.js"></script>
+
+<!-- Atlantis JS -->
+<script src="<%= host %>libs/validator/jquery.validate.js"></script>
+<script src="<%= host %>assets/js/atlantis.min.js"></script>
+<script src="<%= host %>libs/dompurify/purify.min.js"></script>
+<script src="<%= host %>app/dom.module.js"></script>
+<script src="<%= host %>app/config.module.js"></script>
+<script src="<%= host %>app/api.module.js"></script>
+<script src="<%= host %>app/helper.module.js"></script>
+<script src="<%= host %>app/http.module.js"></script>
+<script src="<%= host %>app/user.module.js"></script>
+<script src="<%= host %>app/objects.module.js"></script>
+<script>
+    userModule.getUsers();
+    helperModule.onLoadVisibility('#edit-user', 250);
+    userModule.userUpdateFormValidation();
+    userModule.getUserDetails();
+</script>
+</body>
+</html>

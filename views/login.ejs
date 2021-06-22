@@ -1,0 +1,83 @@
+<% include partials/header.ejs %>
+<body class="text-center">
+
+<div class="wrapper">
+
+    <% include partials/app-name.ejs %>
+
+    <!-- Sidebar -->
+    <div class="sidebar sidebar-style-2">
+        <div class="sidebar-wrapper scrollbar scrollbar-inner">
+            <div class="sidebar-content">
+                <div class="user">
+                    <div class="info"></div>
+                </div>
+
+                <ul class="nav nav-primary"></ul>
+            </div>
+        </div>
+    </div>
+    <!-- End Sidebar -->
+
+    <div class="main-panel">
+        <div class="content" align="center">
+            <div id="message"></div>
+            <div class="page-inner">
+
+                <div class="row">
+                    <div class="col-md-7">
+                        <div class="card" id="login" style="visibility: hidden">
+                            <div class="card-header">
+                                <h4 class="card-title">Authentication</h4>
+                            </div>
+                            <div class="card-body">
+
+                                <form id="login-form">
+
+                                    <% if (pdf !== undefined) { %>
+                                    <input type="hidden" id="pdf" value="<%=pdf%>">
+                                    <% } %>
+
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="username" placeholder="DU ID" required>
+                                    </div>
+                                    <br>
+                                    <div class="form-floating">
+                                        <input type="password" class="form-control" id="password" placeholder="Passcode" required>
+                                    </div>
+                                    <br>
+                                    <button id="login-button" class="w-75 btn btn-lg btn-default" type="submit"> Login</button>
+                                    <br><br>
+                                        <img src="../assets/img/du_logo.png" height="50">
+                                    <br>
+                                    <p class="text-muted"><small>University Libraries</small><br>&copy; <small>2021</small></p>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <% include partials/footer.ejs %>
+    </div>
+    <!-- End Custom template -->
+</div>
+<script src="../assets/js/core/jquery.3.2.1.min.js"></script>
+<script src="../libs/validator/jquery.validate.js"></script>
+<script src="../libs/dompurify/purify.min.js"></script>-
+<script src="../app/dom.module.js"></script>
+<script src="../app/config.module.js"></script>
+<script src="../app/api.module.js"></script>
+<script src="../app/helper.module.js"></script>
+<script src="../app/http.module.js"></script>
+<script src="../app/user.module.js"></script>
+<script>
+    userModule.loginFormValidation();
+    userModule.reset();
+    helperModule.getCurrentYear();
+    history.replaceState({}, '', '/login');
+    history.pushState({}, '', '/login');
+    helperModule.onLoadVisibility('#login', 250);
+</script>
+</body>
+</html>

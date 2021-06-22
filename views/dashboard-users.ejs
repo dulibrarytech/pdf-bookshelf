@@ -1,0 +1,117 @@
+<% include partials/header.ejs %>
+<body>
+<div class="wrapper">
+    <div class="main-header">
+
+        <% include partials/app-name.ejs %>
+
+        <!-- Navbar Header -->
+        <nav class="navbar navbar-header navbar-expand-lg" data-background-color="dark"></nav>
+        <!-- End Navbar -->
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar sidebar-style-2">
+        <div class="sidebar-wrapper scrollbar scrollbar-inner">
+            <div class="sidebar-content">
+                <% include partials/menu-profile.ejs %>
+                <% include partials/nav.ejs %>
+            </div>
+        </div>
+    </div>
+    <!-- End Sidebar -->
+
+    <div class="main-panel">
+        <div class="content">
+            <div id="message"></div>
+            <div class="page-inner" id="users" style="visibility: hidden">
+                <div class="page-header">
+                    <h4 class="page-title">Dashboard - Users</h4>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="card-title">Users</h4>
+                            </div>
+
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table id="active" class="table table-striped table-bordered bulk_action">
+                                        <thead>
+                                        <tr>
+                                            <th>First Name</th>
+                                            <th>Last Name</th>
+                                            <th>Email</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody id="active-users"></tbody>
+                                    </table>
+                                    <br>
+                                    <hr>
+                                    <br>
+                                    <table id="inactive" class="table table-striped table-bordered bulk_action">
+                                        <thead>
+                                        <tr>
+                                            <th>First Name</th>
+                                            <th>Last Name</th>
+                                            <th>Email</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody id="inactive-users"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <% include partials/footer.ejs %>
+    </div>
+    <!-- End Custom template -->
+</div>
+<!--   Core JS Files   -->
+<script src="../assets/js/core/jquery.3.2.1.min.js"></script>
+<script src="../assets/js/core/popper.min.js"></script>
+<script src="../assets/js/core/bootstrap.min.js"></script>
+
+<!-- jQuery UI -->
+<script src="../assets/js/plugin/jquery-ui-1.12.1.custom/jquery-ui.min.js"></script>
+<script src="../assets/js/plugin/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js"></script>
+
+<!-- jQuery Scrollbar -->
+<script src="../assets/js/plugin/jquery-scrollbar/jquery.scrollbar.min.js"></script>
+
+<!-- Datatables -->
+<script src="../assets/js/plugin/datatables/datatables.min.js"></script>
+
+<!-- Bootstrap Notify -->
+<script src="../assets/js/plugin/bootstrap-notify/bootstrap-notify.min.js"></script>
+
+<!-- Sweet Alert -->
+<script src="../assets/js/plugin/sweetalert/sweetalert.min.js"></script>
+
+<!-- Atlantis JS -->
+<script src="../assets/js/atlantis.min.js"></script>
+<script src="../libs/dompurify/purify.min.js"></script>
+<script src="../app/dom.module.js"></script>
+<script src="../app/config.module.js"></script>
+<script src="../app/api.module.js"></script>
+<script src="../app/helper.module.js"></script>
+<script src="../app/http.module.js"></script>
+<script src="../app/user.module.js"></script>
+<script src="../app/objects.module.js"></script>
+<script>
+    userModule.getUsers();
+    helperModule.onLoadVisibility('#users', 250);
+    setTimeout(function() {
+        // $('#active').DataTable({});
+    }, 50);
+</script>
+</body>
+</html>
