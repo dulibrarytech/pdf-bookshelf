@@ -68,6 +68,7 @@ exports.get_pdfs = function (callback) {
 
     DB(DATA)
         .select('*')
+        .orderBy('id', 'desc')
         .then(function (data) {
             callback({
                 status: 200,
