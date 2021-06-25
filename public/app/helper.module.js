@@ -154,7 +154,7 @@ const helperModule = (function () {
                     Dropzone.processQueue();
                 });
             },
-            uploadprogress: function (file, progress, bytesSent) {
+            uploadprogress: function () {
 
                 let button = document.querySelector('#upload-button');
                 button.innerText = 'Uploading...'

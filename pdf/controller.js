@@ -61,14 +61,14 @@ exports.get_pdf = function (req, res) {
     });
 };
 
-exports.get_pdfs = function (req, res) {
+exports.get_pdf_records = function (req, res) {
 
     let cache = CACHE.get_cache(req);
 
     if (cache) {
         res.send(cache);
     } else {
-        PDF.get_pdfs(function (data) {
+        PDF.get_pdf_records(function (data) {
             res.status(data.status).send(data.data);
         });
     }

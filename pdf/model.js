@@ -60,11 +60,11 @@ exports.update_hit_count = function (filename, callback) {
 };
 
 /**
- * Gets all stored pdfs
+ * Gets all pdf records
  * @param req
  * @param callback
  */
-exports.get_pdfs = function (callback) {
+exports.get_pdf_records = function (callback) {
 
     DB(DATA)
         .select('*')
