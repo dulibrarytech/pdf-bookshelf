@@ -51,7 +51,7 @@ exports.get_pdf = function (req, res) {
 
     PDF.update_hit_count(filename, function (data) {
 
-        let pdf = './storage/' + filename;
+        let pdf = './storage/' + filename + '.pdf';
         let fileStream = FS.createReadStream(pdf);
         let stat = FS.statSync(pdf);
 
