@@ -59,7 +59,7 @@ module.exports = function (app) {
         let file_obj = {};
 
         for (let i=0;i<files.length;i++) {
-            file_obj.filename = files[i].filename;
+            file_obj.filename = files[i].filename.replace('.pdf', '');
             file_obj.file_size = files[i].size;
             file_arr.push(file_obj);
             file_obj = {};
