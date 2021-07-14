@@ -78,3 +78,56 @@ exports.reload = function (req, callback) {
             throw 'FATAL: [/libs/transfer-ingest lib (save_transfer_records)] unable to save queue data' + error;
         });
 };
+
+/**
+ * Creates single record
+ * @param req
+ * @param callback
+ */
+exports.load_pdf = function (req, callback) {
+
+    let file = req.query.file;
+
+    /**
+     * Gets pdf file name
+     */
+    function get_pdf_filename() {
+
+        const dir = './storage/'
+
+        try {
+
+            const stat = FS.lstatSync(PATH.join(dir, file));
+
+            return {
+                filename: file.replace('.pdf', ''),
+                file_size: stat.size
+            }
+
+        } catch(error) {
+            throw 'FATAL: [/libs/transfer-ingest lib (save_transfer_records)] unable to get filename ' + error;
+        }
+    }
+
+    let record = get_pdf_filename();
+
+    DB(DATA)
+        .insert(record)
+        .then(function (data) {
+
+            if (data.length === 0) {
+                LOGGER.module().fatal('FATAL: [/libs/transfer-ingest lib (save_transfer_records)] unable to save queue data');
+                throw 'FATAL: [/libs/transfer-ingest lib (save_transfer_records)] unable to save queue data';
+            }
+
+            callback({
+                status: 200
+            });
+
+            return null;
+        })
+        .catch(function (error) {
+            LOGGER.module().fatal('FATAL: [/libs/transfer-ingest lib (save_transfer_records)] unable to save queue data');
+            throw 'FATAL: [/libs/transfer-ingest lib (save_transfer_records)] unable to save queue data' + error;
+        });
+};

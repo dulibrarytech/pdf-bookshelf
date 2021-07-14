@@ -39,3 +39,9 @@ exports.reload = function (req, res) {
         res.status(data.status).send(data.data);
     });
 };
+
+exports.load_pdf = function (req, res) {
+    UTILS.load_pdf(req, function (data) {
+        res.status(data.status).send(data.data);
+    });
+};

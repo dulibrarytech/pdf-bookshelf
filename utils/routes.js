@@ -36,4 +36,7 @@ module.exports = function (app) {
 
     app.route('/api/utils/reload')
         .post(UTILS.reload); // TOKEN.verify,
+
+    app.route('/api/utils/load')
+        .get(UTILS.load_pdf); // TOKEN.verify,
 };
