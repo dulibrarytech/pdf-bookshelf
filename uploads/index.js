@@ -64,15 +64,14 @@ module.exports = function (app) {
             file_arr.push(file_obj);
             file_obj = {};
         }
-
+        console.log(file_arr);
         let record_count = file_arr.length;
         DB.batchInsert(DATA, file_arr, record_count)
             .then(function (data) {
-
+                console.log(data);
                 let message = 'PDFs saved.';
 
                 if (data.length === 0) {
-                    message = 'PDFs not saved.';
                     LOGGER.module().fatal('FATAL: [/uploads/index module (batchInsert)] unable to save PDF data');
                     throw 'FATAL: [/uploads/index module (batchInsert)] unable to save PDF data';
                 }
