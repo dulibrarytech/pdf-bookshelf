@@ -1,6 +1,6 @@
 /**
 
- Copyright 2019 University of Denver
+ Copyright 2021 University of Denver
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -19,10 +19,8 @@
 'use strict';
 
 const CONFIG = require('../config/config'),
-    HTTP = require('../libs/http'),
     FS = require('fs'),
     PATH = require('path'),
-    ASYNC = require('async'),
     LOGGER = require('../libs/log4'),
     CACHE = require('../libs/cache'),
     DB = require('../config/db')(),
@@ -61,10 +59,9 @@ exports.reload = function (req, callback) {
     DB.batchInsert(DATA, files, chunkSize)
         .then(function (data) {
 
-
             if (data.length === 0) {
-                LOGGER.module().fatal('FATAL: [/libs/transfer-ingest lib (save_transfer_records)] unable to save queue data');
-                throw 'FATAL: [/libs/transfer-ingest lib (save_transfer_records)] unable to save queue data';
+                LOGGER.module().fatal('FATAL: [/utils/model (reload)] unable to save data');
+                throw 'FATAL: [/utils/model (reload)] unable to save data';
             }
 
             callback({
@@ -105,7 +102,7 @@ exports.load_pdf = function (req, callback) {
             }
 
         } catch(error) {
-            throw 'FATAL: [/libs/transfer-ingest lib (save_transfer_records)] unable to get filename ' + error;
+            throw 'FATAL: [/utils/model (load_pdf)] unable to get filename ' + error;
         }
     }
 
