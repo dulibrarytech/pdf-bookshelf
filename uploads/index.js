@@ -53,7 +53,7 @@ module.exports = function (app) {
     let upload = MULTER({ storage: storage, fileFilter: FILTER, limits: { fileSize: LIMIT} });
 
     app.post('/uploads', upload.any(), function (req, res) {
-        console.log(res.req.files);
+
         let files = res.req.files;
         let file_arr = [];
         let file_obj = {};
@@ -64,7 +64,7 @@ module.exports = function (app) {
             file_arr.push(file_obj);
             file_obj = {};
         }
-        console.log(file_arr);
+
         let record_count = file_arr.length;
         DB.batchInsert(DATA, file_arr, record_count)
             .then(function (data) {
