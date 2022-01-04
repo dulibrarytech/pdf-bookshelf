@@ -24,7 +24,8 @@ const LOGGER = require('../libs/log4'),
 
 /**
  * updates pdf hit count
- * @param req
+ * @param filename
+ * @param callback
  * @param callback
  */
 exports.update_hit_count = function (filename, callback) {
@@ -61,7 +62,6 @@ exports.update_hit_count = function (filename, callback) {
 
 /**
  * Gets all pdf records
- * @param req
  * @param callback
  */
 exports.get_pdf_records = function (callback) {
