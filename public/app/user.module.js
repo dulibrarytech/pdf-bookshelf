@@ -302,11 +302,11 @@ const userModule = (function () {
      */
     const addUser = function () {
 
-        let user = getUserFormData('#user-form');
+        let user = getUserFormData('#user-add-form');
         let arr = user.split('&');
         let obj = {};
 
-        domModule.hide('#user-form');
+        domModule.hide('#user-add-form');
         domModule.html('#message', '<div class="alert alert-info">Saving User...</div>');
 
         for (let i=0;i<arr.length;i++) {
@@ -331,12 +331,12 @@ const userModule = (function () {
             if (response.status === 201) {
 
                 domModule.html('#message', '<div class="alert alert-success">User created</div>');
-                domModule.hide('#user-form');
-                document.querySelector('#user-form').reset();
+                domModule.hide('#user-add-form');
+                document.querySelector('#user-add-form').reset();
 
                 setTimeout(function () {
                     domModule.html('#message', null);
-                    domModule.show('#user-form');
+                    domModule.show('#user-add-form');
                 }, 3000);
 
                 return false;
@@ -355,7 +355,7 @@ const userModule = (function () {
             } else if (response.status === 200) {
 
                 domModule.html('#message', '<div class="alert alert-warning">User with DU ID ' + obj.du_id + ' is already in the system</div>');
-                domModule.show('#user-form');
+                domModule.show('#user-add-form');
 
             } else {
                 helperModule.renderError('Error: (HTTP status ' + response.status + ').  Unable to add user.');
@@ -498,7 +498,7 @@ const userModule = (function () {
     obj.userFormValidation = function () {
 
         document.addEventListener('DOMContentLoaded', function() {
-            $('#user-form').validate({
+            $('#user-add-form').validate({
                 submitHandler: function () {
                     addUser();
                 }
