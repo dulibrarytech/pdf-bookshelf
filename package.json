@@ -1,6 +1,6 @@
 {
   "name": "pdf-bookshelf",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Makes purchased PDFs available to authenticated users only",
   "main": "pdf-bookshelf.js",
   "scripts": {
