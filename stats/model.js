@@ -68,7 +68,7 @@ exports.get_stats = function (req, callback) {
 
             let results = {
                 total_pdfs: pdf[0].total_pdf_count,
-                most_accessed_file: filename,
+                most_accessed_file: filename + '  (' + hits[0].most_hits + ')',
                 total_hits: total_hits,
             };
 
