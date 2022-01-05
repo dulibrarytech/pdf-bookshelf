@@ -74,8 +74,8 @@ exports.up = function () {
 exports.down = function () {
 
     DB.schema
-        .dropTable(REPO_USERS)
-        .dropTable(REPO_OBJECTS)
+        .dropTable(DATA)
+        .dropTable(DATA)
         .then(function() {
             console.log('Removing test tables');
         })
