@@ -24,6 +24,9 @@ const DB = require('../config/db')(),
     DATA = 'tbl_data';
 
 // https://stackoverflow.com/questions/35089571/knex-js-create-table-and-insert-data
+/**
+ * Creates test user table
+ */
 const create_users_table = function () {
 
     DB.schema.createTable(USERS, function (table) {
@@ -43,6 +46,9 @@ const create_users_table = function () {
         });
 };
 
+/**
+ * Creates test data table
+ */
 const create_data_table = function () {
 
     DB.schema.createTable(DATA, function (table) {
@@ -69,7 +75,7 @@ exports.up = function () {
 };
 
 /**
- *
+ * Removes db test tables
  */
 exports.down = function () {
 
