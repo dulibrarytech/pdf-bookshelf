@@ -144,6 +144,7 @@ const helperModule = (function () {
             maxFiles: 100,
             parallelUploads: 100,
             acceptedFiles: '.pdf',
+            timeout: 60000*5,
             dictDefaultMessage: 'Drag and Drop PDF files here (**max 100 files)',
             autoProcessQueue: false,
             previewTemplate: document.querySelector('#preview-template').innerHTML,
