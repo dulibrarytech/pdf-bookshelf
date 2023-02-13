@@ -20,99 +20,48 @@
 
 const CONFIG = require('../config/config'),
     TOKEN = require('../libs/tokens'),
-    SERVICE = require('../auth/service'),
     USER = require('../users/model');
 
-exports.login = function (req, res) {
+exports.sso = function (req, res) {
 
-    if (req.body !== undefined) {
+    const sso_host = req.body.HTTP_HOST;
+    const username = req.body.employeeID;
+    const pdf = req.query.pdf;
 
-        let username = req.body.username.trim(),
-            password = req.body.password.trim(),
-            pdf = req.body.pdf.trim()
+    if (sso_host === CONFIG.ssoHost && username !== undefined) {
 
-        if (username.length === 0) {
+        let token = TOKEN.create(username);
+        token = encodeURIComponent(token);
 
-            res.status(401).send({
-                message: 'Authenticate failed. Please enter your DU ID.'
-            });
-
+        // DU community
+        if (pdf !== 'undefined') {
+            res.redirect('/viewer?pdf=' + pdf + '&t=' + token);
             return false;
-
-        } else if (password.length === 0) {
-
-            res.status(401).send({
-                message: 'Authenticate failed. Please enter your passcode.'
-            });
-
-            return false;
-
-        } else if (isNaN(username) === true) {
-
-            res.status(401).send({
-                message: 'Authenticate failed due to invalid username.  Please enter a DU ID. i.e. 871******'
-            });
-
-            return false;
-
-        } else {
-
-            SERVICE.authenticate(username, password, function (isAuth) {
-
-                if (isAuth.auth === true) {
-
-                    let token = TOKEN.create(username);
-                    token = encodeURIComponent(token);
-
-                    // DU community
-                    if (pdf.length !== 0) {
-
-                        res.status(200).send({
-                            message: 'Authenticated',
-                            redirect: '/viewer?pdf=' + pdf + '&t=' + token
-                        });
-
-                        return false;
-                    }
-
-                    // check if staff user has access to bookshelf
-                    USER.check_auth_user(username, function (result) {
-
-                        if (result.auth === true && pdf.length === 0) {
-
-                            res.status(200).send({
-                                message: 'Authenticated',
-                                redirect: '/dashboard/home?t=' + token + '&uid=' + result.data
-                            });
-
-                        } else {
-
-                            res.status(401).send({
-                                message: 'Authenticate failed.'
-                            });
-                        }
-                    });
-
-                } else if (isAuth.auth === false) {
-
-                    res.status(401).send({
-                        message: 'Authenticate failed.'
-                    });
-                }
-            });
         }
+
+        // DU staff - check if staff user has access to bookshelf dashboard
+        USER.check_auth_user(username, function (result) {
+
+            if (result.auth === true) {
+
+                res.redirect('/dashboard/home?t=' + token + '&uid=' + result.data);
+
+            } else {
+
+                res.status(401).send({
+                    message: 'Application authenticate failed.'
+                });
+            }
+        });
     }
 };
 
-exports.login_form = function (req, res) {
-
-    res.renderStatic('login', {
+exports.logout = function (req, res) {
+    res.render('logout', {
         host: CONFIG.host,
         appname: CONFIG.appName,
         appversion: CONFIG.appVersion,
         organization: CONFIG.organization,
-        pdf: '',
-        message: '',
-        username: ''
+        redirect: CONFIG.ssoLogoutUrl
     });
 };

@@ -58,24 +58,15 @@ exports.verify = function (req, res, next) {
             if (error) {
 
                 LOGGER.module().error('ERROR: [/libs/tokens lib (verify)] unable to verify token ' + error);
-
-                res.status(401).send({
-                    message: 'Unauthorized request ' + error
-                });
-
+                res.redirect('/login');
                 return false;
             }
 
             req.decoded = decoded;
             next();
         });
+
     } else {
-        res.render('login', {
-            host: CONFIG.host,
-            pdf: pdf,
-            appname: CONFIG.appName,
-            appversion: CONFIG.appVersion,
-            organization: CONFIG.organization
-        });
+        res.redirect(CONFIG.ssoUrl + '?app_url=' + CONFIG.ssoResponseUrl + '?pdf=' + pdf);
     }
 };

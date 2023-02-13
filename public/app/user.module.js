@@ -223,6 +223,7 @@ const userModule = (function () {
      * @returns {boolean}
      */
     obj.checkUserData = function () {
+
         let data = window.sessionStorage.getItem('bookshelf_user');
 
         if (data !== null) {
@@ -596,10 +597,25 @@ const userModule = (function () {
      * Destroys session data and redirects user to login
      */
     obj.sessionExpired = function () {
-        window.sessionStorage.removeItem('bookshelf_user');
-        setTimeout(function () {
-            window.location.replace('/login');
-        }, 50);
+
+        obj.reset();
+
+        if (window.sessionStorage.getItem('bookshelf_user_token') === null) {
+
+            document.querySelector('#logout-message').innerHTML = 'Logging out...';
+
+            for (let i=0;i<20;i++) {
+                history.replaceState({}, '', '/logout');
+                history.pushState({}, '', '/logout');
+            }
+
+            setTimeout(function () {
+                document.querySelector('#logout-message').innerHTML = 'Logout';
+                window.location.replace('/logout');
+                }, 50);
+        }
+
+        return false;
     };
 
     /**
@@ -640,81 +656,9 @@ const userModule = (function () {
         window.sessionStorage.clear();
     };
 
-    /**
-     * Creates request used to authenticates users
-     */
-    const authenticate = function () {
-
-        document.querySelector('#login-button').disabled = true;
-
-        let pdf;
-
-        if (domModule.val('#pdf', null) !== undefined) {
-            pdf = domModule.val('#pdf', null);
-        }
-
-        let user = {
-            username: domModule.val('#username', null),
-            password: domModule.val('#password', null),
-            pdf: pdf
-        };
-
-        let url = api + endpoints.authenticate,
-            request = new Request(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(user),
-                mode: 'cors'
-            });
-
-        const callback = function (response) {
-
-            if (response.status === 200) {
-
-                response.json().then(function (response) {
-
-                    domModule.html('#message', '<div class="alert alert-success"><i class="fa fa-check-circle"></i> ' + DOMPurify.sanitize(response.message) + '</div>');
-
-                    setTimeout(function () {
-                        window.location.replace(response.redirect);
-                    }, 500);
-
-                });
-
-            } else if (response.status === 401) {
-
-                response.json().then(function (response) {
-                    document.querySelector('#login-button').disabled = false;
-                    helperModule.renderError(DOMPurify.sanitize(response.message));
-                });
-
-            } else {
-                document.querySelector('#login-button').disabled = false;
-                helperModule.renderError('Error: (HTTP status ' + response.status + '). Unable to authenticate user.');
-            }
-        };
-
-        httpModule.req(request, callback);
-    };
-
-    /**
-     * Enable validation on login form
-     */
-    obj.loginFormValidation = function () {
-
-        document.addEventListener('DOMContentLoaded', function() {
-            $('#login-form').validate({
-                submitHandler: function () {
-                    authenticate();
-                }
-            });
-        });
-    };
-
     obj.init = function () {
         obj.renderUserName();
+        document.querySelector('#logout').addEventListener('click', obj.sessionExpired);
     };
 
     return obj;

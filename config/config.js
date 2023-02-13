@@ -34,5 +34,9 @@ module.exports = {
     dbPassword: process.env.DB_PASSWORD,
     dbName: process.env.DB_NAME,
     apiUrl: process.env.API_URL,
+    ssoHost: process.env.SSO_HOST,
+    ssoUrl: process.env.SSO_URL,
+    ssoResponseUrl: process.env.SSO_RESPONSE_URL,
+    ssoLogoutUrl: process.env.SSO_LOGOUT_URL,
     nodeEnv: process.env.NODE_ENV
 };
