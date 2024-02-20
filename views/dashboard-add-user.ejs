@@ -1,9 +1,9 @@
-<% include partials/header.ejs %>
+<%- include('partials/header.ejs'); %>
 <body>
 <div class="wrapper">
     <div class="main-header">
 
-        <% include partials/app-name.ejs %>
+        <%- include('partials/app-name.ejs'); %>
 
         <!-- Navbar Header -->
         <nav class="navbar navbar-header navbar-expand-lg" data-background-color="dark"></nav>
@@ -14,8 +14,8 @@
     <div class="sidebar sidebar-style-2">
         <div class="sidebar-wrapper scrollbar scrollbar-inner">
             <div class="sidebar-content">
-                <% include partials/menu-profile.ejs %>
-                <% include partials/nav.ejs %>
+                <%- include('partials/menu-profile.ejs'); %>
+                <%- include('partials/nav.ejs'); %>
             </div>
         </div>
     </div>
@@ -78,7 +78,7 @@
                 </div>
             </div>
         </div>
-        <% include partials/footer.ejs %>
+        <%- include('partials/footer.ejs'); %>
     </div>
     <!-- End Custom template -->
 </div>

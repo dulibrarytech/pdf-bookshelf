@@ -1,6 +1,6 @@
 {
   "name": "pdf-bookshelf",
-  "version": "0.7.0",
+  "version": "1.0.0",
   "description": "Makes purchased PDFs available to authenticated users only",
   "main": "pdf-bookshelf.js",
   "scripts": {
@@ -9,20 +9,20 @@
   "author": "fernando.reyes@du.edu",
   "license": "Apache",
   "dependencies": {
-    "axios": "^0.21.1",
+    "axios": "^1.6.7",
     "body-parser": "^1.19.0",
     "compression": "^1.7.4",
     "dompurify": "^2.2.6",
     "dotenv": "^4.0.0",
-    "ejs": "^2.7.4",
+    "ejs": "^3.1.9",
     "express": "^4.17.1",
     "express-template-cache": "^0.1.0",
     "helmet": "^3.23.3",
     "install": "^0.12.2",
     "jsdom": "^16.4.0",
-    "jsonwebtoken": "^8.5.1",
-    "knex": "^0.21.16",
-    "log4js": "^4.5.1",
+    "jsonwebtoken": "^9.0.2",
+    "knex": "^3.1.0",
+    "log4js": "^6.9.1",
     "memory-cache": "^0.2.0",
     "method-override": "^2.3.10",
     "moment": "^2.29.1",
@@ -31,7 +31,7 @@
   },
   "devDependencies": {
     "chai": "^4.3.4",
-    "mocha": "^8.3.2",
+    "mocha": "^10.3.0",
     "supertest": "^6.1.3"
   }
 }

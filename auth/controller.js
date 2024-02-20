@@ -48,8 +48,9 @@ exports.sso = function (req, res) {
 
             } else {
 
+                // TODO: redirect to error page?
                 res.status(401).send({
-                    message: 'Application authenticate failed.'
+                    message: 'Application authenticate failed. You do not have access to this application.'
                 });
             }
         });

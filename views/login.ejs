@@ -1,9 +1,9 @@
-<% include partials/header.ejs %>
+<%- include('partials/header.ejs'); %>
 <body class="text-center">
 
 <div class="wrapper">
 
-    <% include partials/app-name.ejs %>
+    <%- include(partials/app-name.ejs); %>
 
     <!-- Sidebar -->
     <div class="sidebar sidebar-style-2">
@@ -61,7 +61,7 @@
                 </div>
             </div>
         </div>
-        <% include partials/footer.ejs %>
+        <%- include('partials/footer.ejs'); %>
     </div>
     <!-- End Custom template -->
 </div>
