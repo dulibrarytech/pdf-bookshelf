@@ -23,8 +23,7 @@ const userModule = (function () {
     const api = configModule.getApi();
     const endpoints = apiModule.endpoints();
     let obj = {};
-    console.log(api);
-    console.log(endpoints);
+
     /**
      * Renders user profile data
      * @param data
@@ -151,7 +150,7 @@ const userModule = (function () {
             });
 
         const callback = function (response) {
-            console.log(response);
+
             if (response.status === 200) {
 
                 response.json().then(function (data) {
@@ -163,7 +162,7 @@ const userModule = (function () {
                 helperModule.renderError('Error: (HTTP status ' + response.status + '). Your session has expired.  You will be redirected to the login page momentarily.');
 
                 setTimeout(function () {
-                    // window.location.replace('/bookshelf/login');
+                    window.location.replace('/bookshelf/login');
                 }, 3000);
 
             } else {
@@ -206,7 +205,7 @@ const userModule = (function () {
                 helperModule.renderError('Error: (HTTP status ' + response.status + '). Your session has expired.  You will be redirected to the login page momentarily.');
 
                 setTimeout(function () {
-                    // window.location.replace('/bookshelf/login');
+                    window.location.replace('/bookshelf/login');
                 }, 3000);
 
             } else {
@@ -254,7 +253,7 @@ const userModule = (function () {
                  helperModule.renderError('Unable to get user profile data.');
 
                  setTimeout(function () {
-                    // window.location.replace('/bookshelf/login');
+                     window.location.replace('/bookshelf/login');
                  }, 3000);
             }
 
@@ -350,7 +349,7 @@ const userModule = (function () {
                     helperModule.renderError('Error: (HTTP status ' + response.status + '). Your session has expired.  You will be redirected to the login page momentarily.');
 
                     setTimeout(function () {
-                        // window.location.replace('/bookshelf/login');
+                        window.location.replace('/bookshelf/login');
                     }, 3000);
                 });
 
@@ -396,7 +395,7 @@ const userModule = (function () {
                 domModule.hide('#user-update-form');
                 setTimeout(function () {
                     domModule.html('#message', null);
-                    // window.location.replace('/bookshelf/dashboard/users');
+                    window.location.replace('/bookshelf/dashboard/users');
                 }, 3000);
 
                 return false;
@@ -408,7 +407,7 @@ const userModule = (function () {
                     helperModule.renderError('Error: (HTTP status ' + response.status + '). Your session has expired.  You will be redirected to the login page momentarily.');
 
                     setTimeout(function () {
-                        // window.location.replace('/bookshelf/login');
+                        window.location.replace('/bookshelf/login');
                     }, 3000);
                 });
 
@@ -537,7 +536,7 @@ const userModule = (function () {
             }, 0);
 
         } else if (data === null) {
-            // window.location.replace('/bookshelf/login');
+            window.location.replace('/bookshelf/login');
         } else {
             return DOMPurify.sanitize(data.token);
         }
@@ -578,12 +577,12 @@ const userModule = (function () {
                     helperModule.renderError('Error: (HTTP status ' + response.status + '). Your session has expired.  You will be redirected to the login page momentarily.');
 
                     setTimeout(function () {
-                        // window.location.replace('/bookshelf/login');
+                        window.location.replace('/bookshelf/login');
                     }, 3000);
 
                 } else {
                     helperModule.renderError('Error: (HTTP status ' + response.status + '). Unable to retrieve user profile.');
-                    // window.location.replace('/bookshelf/login');
+                    window.location.replace('/bookshelf/login');
                 }
             };
 
@@ -612,7 +611,7 @@ const userModule = (function () {
 
             setTimeout(function () {
                 document.querySelector('#logout-message').innerHTML = 'Logout';
-                // window.location.replace('/bookshelf/logout');
+                window.location.replace('/bookshelf/logout');
                 }, 50);
         }
 

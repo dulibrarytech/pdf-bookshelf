@@ -30,8 +30,8 @@ const homeModule = (function () {
             userModule.renderUserName();
         }
 
-        history.replaceState({}, '', '/dashboard/home');
-        history.pushState({}, '', '/dashboard/home');
+        history.replaceState({}, '', '/bookshelf/dashboard/home');
+        history.pushState({}, '', '/bookshelf/dashboard/home');
     };
 
     return obj;
