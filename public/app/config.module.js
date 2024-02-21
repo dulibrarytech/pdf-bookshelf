@@ -28,7 +28,7 @@ const configModule = (function () {
      */
     obj.getApi = function () {
 
-        let api = 'http://localhost:8005';
+        let api = 'http://localhost/bookshelf/';
 
         if (document.domain !== 'localhost') {
             api = location.protocol + '//' + document.domain + ':' + location.port;
@@ -43,10 +43,10 @@ const configModule = (function () {
      */
     obj.getSystemDomain = function () {
 
-        let url = 'http://localhost:8005/pdf/';
+        let url = 'http://localhost/bookshelf/pdf/';
 
         if (document.domain !== 'localhost') {
-            url = 'https://pdf.library.du.edu/pdf/';
+            url = 'https://pdf.library.du.edu/bookshelf/pdf/';
         }
 
         return url;

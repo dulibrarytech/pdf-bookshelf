@@ -18,25 +18,25 @@
 
 'use strict';
 
-const UTILS = require('../utils/controller'),
-    TOKEN = require('../libs/tokens');
-
+const UTILS = require('../utils/controller');
+const TOKEN = require('../libs/tokens');
+const API_PATH = '/bookshelf';
 module.exports = function (app) {
 
-    app.route('/')
+    app.route(API_PATH + '/')
         .get(UTILS.default);
 
-    app.get('/robots.txt', function (req, res) {
+    app.get(API_PATH + '/robots.txt', function (req, res) {
         res.type('text/plain');
         res.send('User-agent: *\nDisallow: /');
     });
 
-    app.route('/api/admin/v1/utils/clear_cache')
+    app.route(API_PATH + '/api/admin/v1/utils/clear_cache')
         .post(TOKEN.verify, UTILS.clear_cache);
 
-    app.route('/api/utils/reload')
+    app.route(API_PATH + '/api/utils/reload')
         .post(UTILS.reload); // TOKEN.verify,
 
-    app.route('/api/utils/load')
+    app.route(API_PATH + '/api/utils/load')
         .get(UTILS.load_pdf); // TOKEN.verify,
 };

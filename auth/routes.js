@@ -20,15 +20,15 @@
 
 const AUTH = require('../auth/controller');
 const TOKEN = require("../libs/tokens");
-
+const API_PATH = '/bookshelf';
 module.exports = function (app) {
 
-    app.route('/login')
+    app.route(API_PATH + '/login')
         .get(TOKEN.verify);
 
-    app.route('/sso')
+    app.route(API_PATH + '/sso')
         .post(AUTH.sso);
 
-    app.route('/logout')
+    app.route(API_PATH + '/logout')
         .get(AUTH.logout);
 };

@@ -18,17 +18,18 @@
 
 'use strict';
 
-const PDF = require('./controller'),
-    TOKEN = require('../libs/tokens');
+const PDF = require('./controller');
+const TOKEN = require('../libs/tokens');
+const API_PATH = '/bookshelf';
 
 module.exports = function (app) {
 
-    app.route('/viewer')
+    app.route(API_PATH + '/viewer')
         .get(TOKEN.verify, PDF.get_pdf_viewer);
 
-    app.route('/pdf/:filename')
+    app.route(API_PATH + '/pdf/:filename')
         .get(TOKEN.verify, PDF.get_pdf);
 
-    app.route('/api/v1/pdfs')
+    app.route(API_PATH + '/api/v1/pdfs')
         .get(TOKEN.verify, PDF.get_pdf_records)
 };

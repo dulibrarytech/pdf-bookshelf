@@ -18,9 +18,10 @@
 
 'use strict';
 
-const CONFIG = require('../config/config'),
-    TOKEN = require('../libs/tokens'),
-    USER = require('../users/model');
+const CONFIG = require('../config/config');
+const TOKEN = require('../libs/tokens');
+const USER = require('../users/model');
+const API_PATH = '/bookshelf';
 
 exports.sso = function (req, res) {
 
@@ -35,7 +36,7 @@ exports.sso = function (req, res) {
 
         // DU community
         if (pdf !== 'undefined') {
-            res.redirect('/viewer?pdf=' + pdf + '&t=' + token);
+            res.redirect(API_PATH + '/viewer?pdf=' + pdf + '&t=' + token);
             return false;
         }
 
@@ -44,7 +45,7 @@ exports.sso = function (req, res) {
 
             if (result.auth === true) {
 
-                res.redirect('/dashboard/home?t=' + token + '&uid=' + result.data);
+                res.redirect(API_PATH + '/dashboard/home?t=' + token + '&uid=' + result.data);
 
             } else {
 

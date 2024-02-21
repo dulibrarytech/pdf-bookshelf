@@ -19,24 +19,25 @@
 'use strict';
 
 const DASHBOARD = require('../dashboard/controller');
+const API_PATH = '/bookshelf';
 
 module.exports = function (app) {
 
-    app.route('/dashboard/home')
+    app.route(API_PATH + '/dashboard/home')
         .get(DASHBOARD.get_dashboard_home);
 
-    app.route('/dashboard/upload')
+    app.route(API_PATH + '/dashboard/upload')
         .get(DASHBOARD.get_dashboard_upload);
 
-    app.route('/dashboard/users')
+    app.route(API_PATH + '/dashboard/users')
         .get(DASHBOARD.get_dashboard_users);
 
-    app.route('/dashboard/users/edit')
+    app.route(API_PATH + '/dashboard/users/edit')
         .get(DASHBOARD.get_dashboard_user_edit_form);
 
-    app.route('/dashboard/users/add')
+    app.route(API_PATH + '/dashboard/users/add')
         .get(DASHBOARD.get_dashboard_user_add_form);
 
-    app.route('/dashboard/users/delete')
+    app.route(API_PATH + '/dashboard/users/delete')
         .get(DASHBOARD.get_dashboard_user_delete_form);
 };

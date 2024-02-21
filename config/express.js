@@ -50,12 +50,12 @@ module.exports = function() {
     APP.use(METHODOVERRIDE());
     APP.use(HELMET());
 
-    APP.use(EXPRESS.static('./public'));
+    APP.use('/bookshelf/static', EXPRESS.static('./public'));
     APP.use(XSS.sanitize_req_query);
     APP.use(XSS.sanitize_req_body);
     APP.set('views', './views');
     APP.set('view engine', 'ejs');
-    APP.set('view cache', view_cache);
+    // APP.set('view cache', view_cache);
 
     require('../auth/routes.js')(APP);
     require('../users/routes.js')(APP);
