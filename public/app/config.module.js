@@ -28,7 +28,7 @@ const configModule = (function () {
      */
     obj.getApi = function () {
 
-        let api = 'http://localhost/bookshelf/';
+        let api = 'http://localhost/bookshelf';
 
         if (document.domain !== 'localhost') {
             api = location.protocol + '//' + document.domain + ':' + location.port;

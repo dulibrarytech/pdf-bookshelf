@@ -20,6 +20,7 @@ const objectsModule = (function () {
 
     'use strict';
 
+    const api = configModule.getApi();
     const endpoints = apiModule.endpoints();
     let obj = {};
 
@@ -27,9 +28,8 @@ const objectsModule = (function () {
      * Gets pdf objects
      */
     obj.getObjects = function () {
-
         let token = userModule.getUserToken(),
-            request = new Request(endpoints.pdfs, {
+            request = new Request(api + endpoints.pdfs, {
                 method: 'GET',
                 mode: 'cors',
                 headers: {
@@ -54,7 +54,7 @@ const objectsModule = (function () {
                     helperModule.renderError('Error: (HTTP status ' + response.status + '). Your session has expired.  You will be redirected to the login page momentarily.');
 
                     setTimeout(function () {
-                        window.location.replace('/login');
+                        // window.location.replace('/bookshelf/login');
                     }, 4000);
                 });
 

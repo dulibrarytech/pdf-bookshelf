@@ -31,5 +31,5 @@ module.exports = function (app) {
         .get(TOKEN.verify, PDF.get_pdf);
 
     app.route(API_PATH + '/api/v1/pdfs')
-        .get(TOKEN.verify, PDF.get_pdf_records)
+        .get(PDF.get_pdf_records) // TOKEN.verify,
 };

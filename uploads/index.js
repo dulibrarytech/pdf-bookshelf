@@ -52,7 +52,7 @@ module.exports = function (app) {
 
     let upload = MULTER({ storage: storage, fileFilter: FILTER, limits: { fileSize: LIMIT} });
 
-    app.post('/uploads', upload.any(), function (req, res) {
+    app.post('/bookshelf/uploads', upload.any(), function (req, res) {
 
         let files = res.req.files;
         let file_arr = [];
