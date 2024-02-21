@@ -31,7 +31,7 @@ const configModule = (function () {
         let api = 'http://localhost/bookshelf';
 
         if (document.domain !== 'localhost') {
-            api = location.protocol + '//' + document.domain + ':' + location.port;
+            api = location.protocol + '//' + document.domain + ':' + location.port + '/bookshelf';
         }
 
         return api;
