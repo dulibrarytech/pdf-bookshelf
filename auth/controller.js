@@ -20,40 +20,61 @@
 
 const CONFIG = require('../config/config');
 const TOKEN = require('../libs/tokens');
-const USER = require('../users/model');
+const MODEL = require('../users/model');
 const API_PATH = '/bookshelf';
+const VALIDATOR = require('validator');
 
 exports.sso = function (req, res) {
 
-    const sso_host = req.body.HTTP_HOST;
-    const username = req.body.employeeID;
-    const pdf = req.query.pdf;
+    if (req.body.employeeID === undefined || req.body.HTTP_HOST === undefined) {
 
-    if (sso_host === CONFIG.ssoHost && username !== undefined) {
+        res.status(403).send({
+            message: 'You do not have access to this resource.'
+        });
+        return false;
+    }
 
-        let token = TOKEN.create(username);
+    if (!VALIDATOR.isNumeric(req.body.employeeID) || !VALIDATOR.isFQDN(req.body.HTTP_HOST)) {
+
+        res.status(403).send({
+            message: 'You do not have access to this resource.'
+        });
+
+        return false;
+    }
+
+    if (req.body.employeeID.length > 10) {
+
+        res.status(400).send({
+            message: 'Bad Request.'
+        });
+
+        return false;
+    }
+
+    const USERNAME = req.body.employeeID;
+    const SSO_HOST = req.body.HTTP_HOST;
+    delete req.body;
+
+    if (SSO_HOST === CONFIG.ssoHost) {
+
+        let token = TOKEN.create(USERNAME);
         token = encodeURIComponent(token);
 
-        // DU community
-        if (pdf !== 'undefined') {
-            res.redirect(API_PATH + '/viewer?pdf=' + pdf + '&t=' + token);
-            return false;
-        }
-
-        // DU staff - check if staff user has access to bookshelf dashboard
-        USER.check_auth_user(username, function (result) {
+        MODEL.check_auth_user(USERNAME, (result) => {
 
             if (result.auth === true) {
-
-                res.redirect(API_PATH + '/dashboard/home?t=' + token + '&uid=' + result.data);
-
+                res.redirect(API_PATH + '/dashboard/home?t=' + token + '&uid=' + parseInt(result.data));
             } else {
-
-                // TODO: redirect to error page?
-                res.status(401).send({
-                    message: 'Application authenticate failed. You do not have access to this application.'
+                res.status(403).send({
+                    message: 'You do not have access to this resource.'
                 });
             }
+        });
+
+    } else {
+        res.status(401).send({
+            message: 'Authentication failed.'
         });
     }
 };

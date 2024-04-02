@@ -18,12 +18,27 @@
 
 'use strict';
 
-const PDF = require('./model'),
-    CONFIG = require('../config/config'),
-    CACHE = require('../libs/cache'),
-    FS = require('fs');
+const PDF = require('./model');
+const CONFIG = require('../config/config');
+const CACHE = require('../libs/cache');
+const FS = require('fs');
+const VALIDATOR = require('validator');
 
 exports.get_pdf_viewer = function (req, res) {
+
+    if (req.query.pdf === undefined) {
+
+        return false;
+    }
+
+    if (!VALIDATOR.isAlphanumeric(req.body.pdf)) {
+
+        res.status(403).send({
+            message: 'You do not have access to this resource.'
+        });
+
+        return false;
+    }
 
     let pdf = req.query.pdf;
 
