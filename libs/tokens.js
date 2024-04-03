@@ -18,9 +18,10 @@
 
 'use strict';
 
-const CONFIG = require('../config/config'),
-    JWT = require('jsonwebtoken'),
-    LOGGER = require('../libs/log4');
+const CONFIG = require('../config/config');
+const JWT = require('jsonwebtoken');
+const LOGGER = require('../libs/log4');
+const API_PATH = '/bookshelf';
 
 /**
  * Creates session token
@@ -48,25 +49,31 @@ exports.create = function (username) {
  */
 exports.verify = function (req, res, next) {
 
-    let token = req.headers['x-access-token'] || req.query.t;
-    let pdf = req.params.filename;
+    try {
 
-    if (token !== undefined) {
+        let token = req.headers['x-access-token'] || req.query.t;
+        let pdf = req.params.filename;
 
-        JWT.verify(token, CONFIG.tokenSecret, function (error, decoded) {
+        if (token !== undefined) {
 
-            if (error) {
+            JWT.verify(token, CONFIG.tokenSecret, function (error, decoded) {
 
-                LOGGER.module().error('ERROR: [/libs/tokens lib (verify)] unable to verify token ' + error);
-                res.redirect('/login');
-                return false;
-            }
+                if (error) {
 
-            req.decoded = decoded;
-            next();
-        });
+                    LOGGER.module().error('ERROR: [/libs/tokens lib (verify)] unable to verify token ' + error);
+                    res.redirect(API_PATH + '/login');
+                    return false;
+                }
 
-    } else {
-        res.redirect(CONFIG.ssoUrl + '?app_url=' + CONFIG.ssoResponseUrl + '?pdf=' + pdf);
+                req.decoded = decoded;
+                next();
+            });
+
+        } else {
+            res.redirect(CONFIG.ssoUrl + '?app_url=' + CONFIG.ssoResponseUrl + '?pdf=' + pdf);
+        }
+
+    } catch (error) {
+        LOGGER.module().error('ERROR: [/libs/tokens lib (verify)] unable to verify token ' + error.message);
     }
 };

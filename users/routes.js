@@ -25,8 +25,8 @@ const API_PATH = '/bookshelf';
 module.exports = function (app) {
 
     app.route(API_PATH + '/api/v1/users')
-        .get(TOKEN.verify, USERS.get_users)
-        .put(TOKEN.verify, USERS.update_user)
-        .post(TOKEN.verify, USERS.save_user)
-        .delete(TOKEN.verify, USERS.delete_user);
+    .get(TOKEN.verify, USERS.get_users)
+    .put(TOKEN.verify, USERS.update_user)
+    .post(TOKEN.verify, USERS.save_user)
+    .delete(TOKEN.verify, USERS.delete_user);
 };

@@ -21,10 +21,11 @@
 const UTILS = require('../utils/controller');
 const TOKEN = require('../libs/tokens');
 const API_PATH = '/bookshelf';
+
 module.exports = function (app) {
 
     app.route(API_PATH + '/')
-        .get(UTILS.default);
+    .get(UTILS.default);
 
     app.get(API_PATH + '/robots.txt', function (req, res) {
         res.type('text/plain');
@@ -32,11 +33,11 @@ module.exports = function (app) {
     });
 
     app.route(API_PATH + '/api/admin/v1/utils/clear_cache')
-        .post(TOKEN.verify, UTILS.clear_cache);
+    .post(TOKEN.verify, UTILS.clear_cache);
 
     app.route(API_PATH + '/api/utils/reload')
-        .post(UTILS.reload); // TOKEN.verify,
+    .post(TOKEN.verify, UTILS.reload);
 
     app.route(API_PATH + '/api/utils/load')
-        .get(UTILS.load_pdf); // TOKEN.verify,
+    .get(TOKEN.verify, UTILS.load_pdf);
 };

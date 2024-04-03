@@ -34,16 +34,6 @@ exports.get_pdf_viewer = function (req, res) {
         return false;
     }
 
-    /*
-    if (!VALIDATOR.isAlphanumeric(req.body.pdf)) {
-
-        res.status(400).send({
-            message: 'Bad Request.'
-        });
-
-        return false;
-    }
-    */
     let pdf = req.query.pdf;
 
     res.render('viewer', {
