@@ -2185,7 +2185,9 @@ const PDFViewerApplication = {
 exports.PDFViewerApplication = PDFViewerApplication;
 let validateFileURL;
 {
+  let LOCAL_AUTO_DETECT_ORIGIN = window.location.origin;
   const HOSTED_VIEWER_ORIGINS = ["null", "http://mozilla.github.io", "https://mozilla.github.io"];
+  HOSTED_VIEWER_ORIGINS.push(LOCAL_AUTO_DETECT_ORIGIN);
 
   validateFileURL = function (file) {
     if (file === undefined) {
