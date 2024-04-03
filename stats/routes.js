@@ -24,5 +24,5 @@ const API_PATH = '/bookshelf';
 module.exports = function (app) {
 
     app.route(API_PATH + '/api/v1/stats')
-        .get(STATS.get_stats);  // TOKEN.verify,
+        .get(TOKEN.verify, STATS.get_stats);
 };
