@@ -68,6 +68,10 @@ module.exports = function() {
     CACHE.clear_cache();
     DIRS.check_directories();
 
+    APP.get('*', function(req, res){
+        res.status(404).send('Resource Not Found');
+    });
+
     SERVER.listen(process.env.APP_PORT);
 
     return APP;

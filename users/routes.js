@@ -26,7 +26,7 @@ module.exports = function (app) {
 
     app.route(API_PATH + '/api/v1/users')
         .get(USERS.get_users)  // TOKEN.verify,
-        .put(TOKEN.verify, USERS.update_user)
-        .post(TOKEN.verify, USERS.save_user)
-        .delete(TOKEN.verify, USERS.delete_user);
+        .put(USERS.update_user)  // TOKEN.verify,
+        .post(USERS.save_user)  // TOKEN.verify,
+        .delete( USERS.delete_user); // TOKEN.verify,
 };

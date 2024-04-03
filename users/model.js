@@ -18,9 +18,10 @@
 
 'use strict';
 
-const LOGGER = require('../libs/log4'),
-    DB =require('../config/db')(),
-    USERS = 'tbl_users';
+const LOGGER = require('../libs/log4');
+const DB =require('../config/db')();
+const USERS = 'tbl_users';
+const VALIDATOR = require('validator');
 
 /**
  * Gets all users
@@ -32,11 +33,27 @@ exports.get_users = function (req, callback) {
 
     if (req.query.id !== undefined && req.query.id.length !== 0) {
 
-        get_user(req, function (user) {
-            callback(user);
-        });
+        try {
 
-        return false;
+            if (!VALIDATOR.isNumeric(req.query.id)) {
+
+                callback({
+                    status: 400,
+                    message: 'Bad Request.'
+                });
+
+                return false;
+            }
+
+            get_user(req, function (user) {
+                callback(user);
+            });
+
+            return false;
+
+        } catch (error) {
+            LOGGER.module().error('ERROR: [/users/model module (get_users)] unable to get user ' + error.message);
+        }
     }
 
     DB(USERS)
@@ -57,8 +74,7 @@ exports.get_users = function (req, callback) {
             });
         })
         .catch(function (error) {
-            LOGGER.module().fatal('FATAL: [/users/model module (get_users)] unable to get users ' + error);
-            throw 'FATAL: [/users/model module (get_users)] unable to get users ' + error;
+            LOGGER.module().error('ERROR: [/users/model module (get_users)] unable to get users ' + error.message);
         });
 };
 
@@ -70,6 +86,7 @@ exports.get_users = function (req, callback) {
 const get_user = function (req, callback) {
 
     let id = req.query.id;
+    delete req.query;
 
     if (id === undefined || id.length === 0) {
 
@@ -79,10 +96,20 @@ const get_user = function (req, callback) {
         });
     }
 
+    if (!VALIDATOR.isNumeric(id)) {
+
+        callback({
+            status: 400,
+            message: 'Bad Request.'
+        });
+
+        return false;
+    }
+
     DB(USERS)
         .select('id', 'du_id', 'email', 'first_name', 'last_name', 'is_active', 'created')
         .where({
-            id: id
+            id: parseInt(id)
         })
         .then(function (data) {
 
@@ -93,8 +120,7 @@ const get_user = function (req, callback) {
             });
         })
         .catch(function (error) {
-            LOGGER.module().fatal('FATAL: [/users/model module (get_user)] unable to get user ' + error);
-            throw 'FATAL: [/users/model module (get_user)] unable to get user ' + error;
+            LOGGER.module().error('ERROR: [/users/model module (get_user)] unable to get user ' + error.message);
         });
 };
 
@@ -105,7 +131,29 @@ const get_user = function (req, callback) {
  */
 exports.check_auth_user = function (username, callback) {
 
-    DB(USERS)
+    try {
+
+        if (!VALIDATOR.isNumeric(username) || username === undefined) {
+
+            callback({
+                status: 403,
+                message: 'You do not have access to this resource.'
+            });
+
+            return false;
+        }
+
+        if (username.length > 10) {
+
+            callback({
+                status: 400,
+                message: 'Bad Request.'
+            });
+
+            return false;
+        }
+
+        DB(USERS)
         .select('id')
         .where({
             du_id: username,
@@ -116,7 +164,7 @@ exports.check_auth_user = function (username, callback) {
             if (data.length === 1) {
                 callback({
                     auth: true,
-                    data: data[0].id
+                    data: parseInt(data[0].id)
                 });
             } else {
                 callback({
@@ -126,9 +174,12 @@ exports.check_auth_user = function (username, callback) {
             }
         })
         .catch(function (error) {
-            LOGGER.module().error('FATAL: [/users/model module (check_auth_user)] unable to check auth ' + error);
-            throw 'FATAL: [/users/model module (check_auth_user)] unable to check auth ' + error;
+            LOGGER.module().error('ERROR: [/users/model module (check_auth_user)] unable to check auth ' + error.message);
         });
+
+    } catch (error) {
+        LOGGER.module().error('ERROR: [/users/model module (check_auth_user)] unable to check auth ' + error.message);
+    }
 };
 
 /**
@@ -138,7 +189,29 @@ exports.check_auth_user = function (username, callback) {
  */
 exports.get_auth_user_data = function (username, callback) {
 
-    DB(USERS)
+    try {
+
+        if (!VALIDATOR.isNumeric(username) || username === undefined) {
+
+            callback({
+                status: 403,
+                message: 'You do not have access to this resource.'
+            });
+
+            return false;
+        }
+
+        if (username.length > 10) {
+
+            callback({
+                status: 400,
+                message: 'Bad Request.'
+            });
+
+            return false;
+        }
+
+        DB(USERS)
         .select('id', 'du_id', 'email', 'first_name', 'last_name')
         .where({
             du_id: username,
@@ -157,9 +230,12 @@ exports.get_auth_user_data = function (username, callback) {
             }
         })
         .catch(function (error) {
-            LOGGER.module().fatal('FATAL: [/users/model module (get_auth_user_data)] unable to get user data ' + error);
-            throw 'FATAL: [/users/model module (get_auth_user_data)] unable to get user data ' + error;
+            LOGGER.module().error('ERROR: [/users/model module (get_auth_user_data)] unable to get user data ' + error.message);
         });
+
+    } catch (error) {
+        LOGGER.module().error('ERROR: [/users/model module (get_auth_user_data)] unable to get user data ' + error.message);
+    }
 };
 
 /**
@@ -169,22 +245,35 @@ exports.get_auth_user_data = function (username, callback) {
  */
 exports.update_user = function (req, callback) {
 
-    let User = req.body,
-        id = User.id;
+    try {
 
-    if (User === undefined || id.length === 0) {
+        let User = req.body,
+            id = User.id;
+        delete req.body;
 
-        callback({
-            status: 400,
-            message: 'Bad Request.'
-        });
-    }
+        if (id.length === 0) {
 
-    delete User.id;
+            callback({
+                status: 400,
+                message: 'Bad Request.'
+            });
+        }
 
-    DB(USERS)
+        if (!VALIDATOR.isNumeric(id)) {
+
+            callback({
+                status: 400,
+                message: 'Bad Request.'
+            });
+
+            return false;
+        }
+
+        delete User.id;
+
+        DB(USERS)
         .where({
-            id: id
+            id: parseInt(id)
         })
         .update({
             email: User.email,
@@ -202,9 +291,12 @@ exports.update_user = function (req, callback) {
             return null;
         })
         .catch(function (error) {
-            LOGGER.module().fatal('FATAL: [/users/model module (update_user)] unable to update user record ' + error);
-            throw 'FATAL: [/users/model module (update_user)] unable to update user record ' + error;
+            LOGGER.module().error('ERROR: [/users/model module (update_user)] unable to update user record ' + error.message);
         });
+
+    } catch (error) {
+        LOGGER.module().error('ERROR: [/users/model module (update_user)] unable to update user record ' + error.message);
+    }
 };
 
 /**
@@ -214,20 +306,43 @@ exports.update_user = function (req, callback) {
  */
 exports.save_user = function (req, callback) {
 
-    let userObj = req.body;
-    let user = Object.values(userObj);
+    try {
 
-    if (user.indexOf(null) !== -1 || user.indexOf('') !== -1) {
-        callback({
-            status: 200,
-            message: 'Please fill in all required fields.',
-            data: userObj
-        });
+        let userObj = req.body;
+        let user = Object.values(userObj);
+        delete req.body;
 
-        return false;
-    }
+        if (!VALIDATOR.isNumeric(userObj.du_id)) {
 
-    DB(USERS)
+            callback({
+                status: 403,
+                message: 'You do not have access to this resource.'
+            });
+
+            return false;
+        }
+
+        if (userObj.du_id.length > 10) {
+
+            callback({
+                status: 400,
+                message: 'Bad Request.'
+            });
+
+            return false;
+        }
+
+        if (user.indexOf(null) !== -1 || user.indexOf('') !== -1) {
+            callback({
+                status: 200,
+                message: 'Please fill in all required fields.',
+                data: userObj
+            });
+
+            return false;
+        }
+
+        DB(USERS)
         .count('du_id as du_id')
         .where('du_id', userObj.du_id)
         .then(function (data) {
@@ -242,24 +357,26 @@ exports.save_user = function (req, callback) {
             }
 
             DB(USERS)
-                .insert(userObj)
-                .then(function (data) {
-                    callback({
-                        status: 201,
-                        message: 'User created.'
-                    });
-                })
-                .catch(function (error) {
-                    LOGGER.module().error('FATAL: [/users/model module (save_user)] unable to get user data ' + error);
-                    throw 'FATAL: [/users/model module (save_user)] unable to get user data ' + error;
+            .insert(userObj)
+            .then(function (data) {
+                callback({
+                    status: 201,
+                    message: 'User created.'
                 });
+            })
+            .catch(function (error) {
+                LOGGER.module().error('ERROR: [/users/model module (save_user)] unable to get user data ' + error.message);
+            });
         })
         .catch(function (error) {
-            LOGGER.module().error('FATAL: [/users/model module (save_user)] unable to save user data ' + error);
-            throw 'FATAL: [/users/model module (save_user)] unable to save user data ' + error;
+            LOGGER.module().error('ERROR: [/users/model module (save_user)] unable to save user data ' + error.message);
         });
 
-    return false;
+        return false;
+
+    } catch (error) {
+        LOGGER.module().error('ERROR: [/users/model module (save_user)] unable to save user data ' + error.message);
+    }
 };
 
 /**
@@ -269,19 +386,33 @@ exports.save_user = function (req, callback) {
  */
 exports.delete_user = function (req, callback) {
 
-    let id = req.query.id;
+    try {
 
-    if (id === undefined || id.length === 0) {
+        let id = req.query.id;
 
-        callback({
-            status: 400,
-            message: 'Bad Request.'
-        });
-    }
+        if (id === undefined || id.length === 0) {
 
-    DB(USERS)
+            callback({
+                status: 400,
+                message: 'Bad Request.'
+            });
+
+            return false;
+        }
+
+        if (!VALIDATOR.isNumeric(id)) {
+
+            callback({
+                status: 400,
+                message: 'Bad Request.'
+            });
+
+            return false;
+        }
+
+        DB(USERS)
         .where({
-            id: id
+            id: parseInt(id)
         })
         .del()
         .then(function (data) {
@@ -294,7 +425,10 @@ exports.delete_user = function (req, callback) {
             return null;
         })
         .catch(function (error) {
-            LOGGER.module().fatal('FATAL: [/users/model module (delete_user)] unable to delete user record ' + error);
-            throw 'FATAL: [/users/model module (update_user)] unable to delete user record ' + error;
+            LOGGER.module().fatal('FATAL: [/users/model module (delete_user)] unable to delete user record ' + error.message);
         });
+
+    } catch (error) {
+        LOGGER.module().fatal('FATAL: [/users/model module (delete_user)] unable to delete user record ' + error.message);
+    }
 };

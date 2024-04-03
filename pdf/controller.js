@@ -55,7 +55,6 @@ exports.get_pdf_viewer = function (req, res) {
     });
 };
 
-// http://localhost/bookshelf/pdf/virtual_literacy_in_the_virtual_realm
 exports.get_pdf = function (req, res) {
 
     let filename = req.params.filename;

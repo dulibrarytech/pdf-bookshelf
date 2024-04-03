@@ -25,11 +25,11 @@ const TOKEN = require('../libs/tokens');
 module.exports = function (app) {
 
     app.route(API_PATH + '/viewer')
-        .get(TOKEN.verify, CONTROLLER.get_pdf_viewer);
+        .get(CONTROLLER.get_pdf_viewer);  // TOKEN.verify,
 
     app.route(API_PATH + '/pdf/:filename')
-        .get(TOKEN.verify, CONTROLLER.get_pdf);
+        .get(CONTROLLER.get_pdf); // TOKEN.verify,
 
     app.route(API_PATH + '/api/v1/pdfs')
-        .get(TOKEN.verify, CONTROLLER.get_pdf_records)
+        .get(CONTROLLER.get_pdf_records)  // TOKEN.verify,
 };
