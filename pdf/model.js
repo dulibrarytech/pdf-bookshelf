@@ -18,14 +18,13 @@
 
 'use strict';
 
-const LOGGER = require('../libs/log4'),
-    DB = require('../config/db')(),
-    DATA = 'tbl_data';
+const LOGGER = require('../libs/log4');
+const DB = require('../config/db')();
+const DATA = 'tbl_data';
 
 /**
  * updates pdf hit count
  * @param filename
- * @param callback
  * @param callback
  */
 exports.update_hit_count = function (filename, callback) {
@@ -47,15 +46,14 @@ exports.update_hit_count = function (filename, callback) {
             })
             .then(function (data) {})
             .catch(function (error) {
-                LOGGER.module().fatal('FATAL: [/pdf/model module (get_pdf)] Unable to log hit ' + error);
-                throw 'FATAL: [/pdf/model module (get_pdf)] Unable to log hit ' + error;
+                LOGGER.module().error('ERROR: [/pdf/model module (get_pdf)] Unable to log hit ' + error);
             });
     }
 
-    (async function(){
-        let record = await get_hit_count();
+    (async function() {
+        const record = await get_hit_count();
         update_count(record, filename);
-    })()
+    })();
 
     callback(filename);
 };

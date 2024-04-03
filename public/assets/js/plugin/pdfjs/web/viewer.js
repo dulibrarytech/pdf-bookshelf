@@ -27,7 +27,10 @@
 /* 1 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
-
+const DEFAULT_URL = configModule.getSystemDomain() + helperModule.getParameterByName('pdf')  + '?t=' + helperModule.getParameterByName('t');
+const CMAP_URL = '/bookshelf/static/assets/js/plugin/pdfjs/web/cmaps/';
+const WORKER_SRC = '/bookshelf/static/assets/js/plugin/pdfjs/build/pdf.worker.js';
+const SANDBOX_BUNDLE = '/bookshelf/static/assets/js/plugin/pdfjs/build/pdf.sandbox.js';
 
 Object.defineProperty(exports, "__esModule", ({
   value: true
@@ -50,7 +53,7 @@ const defaultOptions = {
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
   },
   defaultUrl: {
-    value: configModule.getSystemDomain() + helperModule.getParameterByName('pdf')  + '?t=' + helperModule.getParameterByName('t'),
+    value: DEFAULT_URL,
     kind: OptionKind.VIEWER
   },
   defaultZoomValue: {
@@ -155,7 +158,7 @@ const defaultOptions = {
     kind: OptionKind.API
   },
   cMapUrl: {
-    value: "..assets/js/plugin/pdfjs/web/cmaps/",
+    value: CMAP_URL,
     kind: OptionKind.API
   },
   disableAutoFetch: {
@@ -207,7 +210,7 @@ const defaultOptions = {
     kind: OptionKind.WORKER
   },
   workerSrc: {
-    value: "../assets/js/plugin/pdfjs/build/pdf.worker.js",
+    value: WORKER_SRC,
     kind: OptionKind.WORKER
   }
 };
@@ -221,7 +224,7 @@ const defaultOptions = {
     kind: OptionKind.VIEWER
   };
   defaultOptions.sandboxBundleSrc = {
-    value: "..assets/js/plugin/pdfjs/build/pdf.sandbox.js",
+    value: SANDBOX_BUNDLE,
     kind: OptionKind.VIEWER
   };
 }

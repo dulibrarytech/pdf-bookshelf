@@ -27,19 +27,23 @@ const VALIDATOR = require('validator');
 exports.get_pdf_viewer = function (req, res) {
 
     if (req.query.pdf === undefined) {
-
-        return false;
-    }
-
-    if (!VALIDATOR.isAlphanumeric(req.body.pdf)) {
-
-        res.status(403).send({
-            message: 'You do not have access to this resource.'
+        res.status(400).send({
+            message: 'Bad Request.'
         });
 
         return false;
     }
 
+    /*
+    if (!VALIDATOR.isAlphanumeric(req.body.pdf)) {
+
+        res.status(400).send({
+            message: 'Bad Request.'
+        });
+
+        return false;
+    }
+    */
     let pdf = req.query.pdf;
 
     res.render('viewer', {
@@ -51,6 +55,7 @@ exports.get_pdf_viewer = function (req, res) {
     });
 };
 
+// http://localhost/bookshelf/pdf/virtual_literacy_in_the_virtual_realm
 exports.get_pdf = function (req, res) {
 
     let filename = req.params.filename;

@@ -54,12 +54,20 @@ exports.sso = function (req, res) {
 
     const USERNAME = req.body.employeeID;
     const SSO_HOST = req.body.HTTP_HOST;
+    const pdf = req.query.pdf;
     delete req.body;
 
     if (SSO_HOST === CONFIG.ssoHost) {
 
         let token = TOKEN.create(USERNAME);
         token = encodeURIComponent(token);
+
+        // TODO: validate pdf
+        // DU community
+        if (pdf !== 'undefined') {
+            res.redirect(API_PATH + '/viewer?pdf=' + pdf + '&t=' + token);
+            return false;
+        }
 
         MODEL.check_auth_user(USERNAME, (result) => {
 
