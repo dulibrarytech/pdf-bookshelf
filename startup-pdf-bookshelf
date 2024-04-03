@@ -1,2 +1,0 @@
-#!/bin/sh
-node /opt/library_applications/pdf-bookshelf/pdf-bookshelf.js --env production --node-args="--max-old-space-size=6096" > /opt/library_applications/pdf-bookshelf/pdf-bookshelf-startup.log
