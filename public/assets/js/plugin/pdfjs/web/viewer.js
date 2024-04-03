@@ -31,6 +31,7 @@ const DEFAULT_URL = configModule.getSystemDomain() + helperModule.getParameterBy
 const CMAP_URL = '/bookshelf/static/assets/js/plugin/pdfjs/web/cmaps/';
 const WORKER_SRC = '/bookshelf/static/assets/js/plugin/pdfjs/build/pdf.worker.js';
 const SANDBOX_BUNDLE = '/bookshelf/static/assets/js/plugin/pdfjs/build/pdf.sandbox.js';
+const VIEWER_ORIGINS = ["https:///libwebapw01-vlt.du.edu", "null", "http://mozilla.github.io", "https://mozilla.github.io"];
 
 Object.defineProperty(exports, "__esModule", ({
   value: true
@@ -2185,7 +2186,7 @@ const PDFViewerApplication = {
 exports.PDFViewerApplication = PDFViewerApplication;
 let validateFileURL;
 {
-  const HOSTED_VIEWER_ORIGINS = ["null", "http://mozilla.github.io", "https://mozilla.github.io"];
+  const HOSTED_VIEWER_ORIGINS = ["https:///libwebapw01-vlt.du.edu", "null", "http://mozilla.github.io", "https://mozilla.github.io"];
 
   validateFileURL = function (file) {
     if (file === undefined) {
