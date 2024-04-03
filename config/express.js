@@ -26,7 +26,9 @@ const HTTP = require('http'),
     HELMET = require('helmet'),
     XSS = require('../libs/dom'),
     CACHE = require('../libs/cache'),
-    DIRS = require('../libs/directories');
+    DIRS = require('../libs/directories'),
+    CORS = require('cors'),
+    CONFIG = require('../config/config');
 
 module.exports = function() {
 
@@ -56,6 +58,22 @@ module.exports = function() {
     APP.set('views', './views');
     APP.set('view engine', 'ejs');
     // APP.set('view cache', view_cache);
+
+    const CORS_OPTIONS = function (req, callback) {
+
+        const ALLOW = ['https://' + CONFIG.host, 'http://localhost'];
+        let cors_options;
+
+        if (ALLOW.indexOf(req.header('Origin')) !== -1) {
+            cors_options = {origin: true};
+        } else {
+            cors_options = {origin: false};
+        }
+
+        callback(null, cors_options);
+    };
+
+    APP.use(CORS(CORS_OPTIONS));
 
     require('../auth/routes.js')(APP);
     require('../users/routes.js')(APP);
