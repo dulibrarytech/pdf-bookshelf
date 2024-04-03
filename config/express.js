@@ -18,17 +18,17 @@
 
 'use strict';
 
-const HTTP = require('http'),
-    EXPRESS = require('express'),
-    COMPRESS = require('compression'),
-    BODYPARSER = require('body-parser'),
-    METHODOVERRIDE = require('method-override'),
-    HELMET = require('helmet'),
-    XSS = require('../libs/dom'),
-    CACHE = require('../libs/cache'),
-    DIRS = require('../libs/directories');
-    // CORS = require('cors'),
-    // CONFIG = require('../config/config');
+const HTTP = require('http');
+const EXPRESS = require('express');
+const COMPRESS = require('compression');
+const BODYPARSER = require('body-parser');
+const METHODOVERRIDE = require('method-override');
+const HELMET = require('helmet');
+const XSS = require('../libs/dom');
+const CACHE = require('../libs/cache');
+const DIRS = require('../libs/directories');
+const CORS = require('cors');
+const CONFIG = require('../config/config');
 
 module.exports = function() {
 
@@ -59,7 +59,6 @@ module.exports = function() {
     APP.set('view engine', 'ejs');
     // APP.set('view cache', view_cache);
 
-    /*
     const CORS_OPTIONS = function (req, callback) {
 
         const ALLOW = ['https://' + CONFIG.host, 'http://localhost'];
@@ -75,7 +74,6 @@ module.exports = function() {
     };
 
     APP.use(CORS(CORS_OPTIONS));
-    */
 
     require('../auth/routes.js')(APP);
     require('../users/routes.js')(APP);

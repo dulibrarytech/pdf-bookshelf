@@ -43,10 +43,10 @@ const configModule = (function () {
      */
     obj.getSystemDomain = function () {
 
-        let url = 'http://localhost/bookshelf/pdf/';
+        let url = 'http://' + document.domain + '/bookshelf/pdf/';
 
         if (document.domain !== 'localhost') {
-            url = 'https://pdf.library.du.edu/bookshelf/pdf/';
+            url = 'https://' + document.domain + '/bookshelf/pdf/';
         }
 
         return url;
