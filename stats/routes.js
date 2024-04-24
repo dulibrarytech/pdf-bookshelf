@@ -20,7 +20,7 @@
 
 const STATS = require('../stats/controller');
 const TOKEN = require('../libs/tokens');
-const API_PATH = '/bookshelf';
+const API_PATH = '';
 module.exports = function (app) {
 
     app.route(API_PATH + '/api/v1/stats')

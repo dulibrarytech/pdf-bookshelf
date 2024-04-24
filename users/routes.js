@@ -20,7 +20,7 @@
 
 const USERS = require('../users/controller');
 const TOKEN = require('../libs/tokens');
-const API_PATH = '/bookshelf';
+const API_PATH = '';
 
 module.exports = function (app) {
 

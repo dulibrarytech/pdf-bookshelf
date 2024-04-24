@@ -19,7 +19,7 @@
 'use strict';
 
 const DASHBOARD = require('../dashboard/controller');
-const API_PATH = '/bookshelf';
+const API_PATH = '';
 
 module.exports = function (app) {
 
