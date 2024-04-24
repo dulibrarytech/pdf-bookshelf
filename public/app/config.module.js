@@ -28,10 +28,10 @@ const configModule = (function () {
      */
     obj.getApi = function () {
 
-        let api = 'http://localhost/bookshelf';
+        let api = 'http://localhost';
 
         if (document.domain !== 'localhost') {
-            api = location.protocol + '//' + document.domain + ':' + location.port + '/bookshelf';
+            api = location.protocol + '//' + document.domain + ':' + location.port;
         }
 
         return api;
@@ -43,10 +43,10 @@ const configModule = (function () {
      */
     obj.getSystemDomain = function () {
 
-        let url = 'http://' + document.domain + '/bookshelf/pdf/';
+        let url = 'http://' + document.domain + '/pdf/';
 
         if (document.domain !== 'localhost') {
-            url = 'https://' + document.domain + '/bookshelf/pdf/';
+            url = 'https://' + document.domain + '/pdf/';
         }
 
         return url;

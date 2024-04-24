@@ -139,7 +139,7 @@ const helperModule = (function () {
         Dropzone.options.dropzone = {
             paramName: 'files',
             maxFilesize: 1000*10, // 1GB
-            url: '/bookshelf/uploads',
+            url: '/uploads',
             uploadMultiple: true,
             maxFiles: 100,
             parallelUploads: 100,
@@ -176,7 +176,7 @@ const helperModule = (function () {
                         document.querySelector('.progress .progress-bar').style.opacity = '0';
                         let button = document.querySelector('#upload-button');
                         button.innerHTML = 'Upload Complete';
-                        window.location.replace('/bookshelf/dashboard/home');
+                        window.location.replace('/dashboard/home');
                     }, 10);
 
                 });

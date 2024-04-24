@@ -55,7 +55,7 @@ const userModule = (function () {
                 actives += '<td>Active</td>';
                 actives += '<td>';
                 actives += '&nbsp;';
-                actives += '<a class="btn btn-xs btn-default" href="/bookshelf/dashboard/users/edit?id=' + DOMPurify.sanitize(user.id) + '" title="Edit User"><i class="fa fa-edit"></i></a>&nbsp;&nbsp;&nbsp;&nbsp;';
+                actives += '<a class="btn btn-xs btn-default" href="/dashboard/users/edit?id=' + DOMPurify.sanitize(user.id) + '" title="Edit User"><i class="fa fa-edit"></i></a>&nbsp;&nbsp;&nbsp;&nbsp;';
                 actives += '</td>';
                 actives += '</tr>';
 
@@ -77,8 +77,8 @@ const userModule = (function () {
             inactives += '<td style="background: red;color: white">Inactive</td>';
             inactives += '<td>';
             inactives += '&nbsp;';
-            inactives += '<a class="btn btn-xs btn-default" href="/bookshelf/dashboard/users/edit?id=' + DOMPurify.sanitize(user.id) + '" title="Edit User"><i class="fa fa-edit"></i></a>&nbsp;&nbsp;&nbsp;&nbsp;';
-            inactives += '<a class="btn btn-xs btn-danger" href="/bookshelf/dashboard/users/delete?id=' + DOMPurify.sanitize(user.id) + '" title="Delete User"><i class="fa fa-times"></i></a>';
+            inactives += '<a class="btn btn-xs btn-default" href="/dashboard/users/edit?id=' + DOMPurify.sanitize(user.id) + '" title="Edit User"><i class="fa fa-edit"></i></a>&nbsp;&nbsp;&nbsp;&nbsp;';
+            inactives += '<a class="btn btn-xs btn-danger" href="/dashboard/users/delete?id=' + DOMPurify.sanitize(user.id) + '" title="Delete User"><i class="fa fa-times"></i></a>';
             inactives += '</td>';
             inactives += '</tr>';
         }
@@ -104,7 +104,7 @@ const userModule = (function () {
             domModule.html('#user-update-form', null);
             helperModule.renderError('Unable to get profile data.');
             setTimeout(function () {
-                window.location.replace('/bookshelf/dashboard/users');
+                window.location.replace('/dashboard/users');
             }, 3000);
             return false;
         }
@@ -162,7 +162,7 @@ const userModule = (function () {
                 helperModule.renderError('Error: (HTTP status ' + response.status + '). Your session has expired.  You will be redirected to the login page momentarily.');
 
                 setTimeout(function () {
-                    window.location.replace('/bookshelf/login');
+                    window.location.replace('/login');
                 }, 3000);
 
             } else {
@@ -205,7 +205,7 @@ const userModule = (function () {
                 helperModule.renderError('Error: (HTTP status ' + response.status + '). Your session has expired.  You will be redirected to the login page momentarily.');
 
                 setTimeout(function () {
-                    window.location.replace('/bookshelf/login');
+                    window.location.replace('/login');
                 }, 3000);
 
             } else {
@@ -253,7 +253,7 @@ const userModule = (function () {
                  helperModule.renderError('Unable to get user profile data.');
 
                  setTimeout(function () {
-                     window.location.replace('/bookshelf/login');
+                     window.location.replace('/login');
                  }, 3000);
             }
 
@@ -349,7 +349,7 @@ const userModule = (function () {
                     helperModule.renderError('Error: (HTTP status ' + response.status + '). Your session has expired.  You will be redirected to the login page momentarily.');
 
                     setTimeout(function () {
-                        window.location.replace('/bookshelf/login');
+                        window.location.replace('/login');
                     }, 3000);
                 });
 
@@ -395,7 +395,7 @@ const userModule = (function () {
                 domModule.hide('#user-update-form');
                 setTimeout(function () {
                     domModule.html('#message', null);
-                    window.location.replace('/bookshelf/dashboard/users');
+                    window.location.replace('/dashboard/users');
                 }, 3000);
 
                 return false;
@@ -407,7 +407,7 @@ const userModule = (function () {
                     helperModule.renderError('Error: (HTTP status ' + response.status + '). Your session has expired.  You will be redirected to the login page momentarily.');
 
                     setTimeout(function () {
-                        window.location.replace('/bookshelf/login');
+                        window.location.replace('/login');
                     }, 3000);
                 });
 
@@ -446,7 +446,7 @@ const userModule = (function () {
                 domModule.html('#message', '<div class="alert alert-success">User deleted</div>');
                 setTimeout(function () {
                     domModule.html('#message', null);
-                    window.location.replace('/bookshelf/dashboard/users');
+                    window.location.replace('/dashboard/users');
                 }, 2000);
 
                 return false;
@@ -458,7 +458,7 @@ const userModule = (function () {
                     helperModule.renderError('Error: (HTTP status ' + response.status + '). Your session has expired.  You will be redirected to the login page momentarily.');
 
                     setTimeout(function () {
-                        window.location.replace('/bookshelf/login');
+                        window.location.replace('/login');
                     }, 3000);
                 });
 
@@ -536,7 +536,7 @@ const userModule = (function () {
             }, 0);
 
         } else if (data === null) {
-            window.location.replace('/bookshelf/login');
+            window.location.replace('/login');
         } else {
             return DOMPurify.sanitize(data.token);
         }
@@ -577,12 +577,12 @@ const userModule = (function () {
                     helperModule.renderError('Error: (HTTP status ' + response.status + '). Your session has expired.  You will be redirected to the login page momentarily.');
 
                     setTimeout(function () {
-                        window.location.replace('/bookshelf/login');
+                        window.location.replace('/login');
                     }, 3000);
 
                 } else {
                     helperModule.renderError('Error: (HTTP status ' + response.status + '). Unable to retrieve user profile.');
-                    window.location.replace('/bookshelf/login');
+                    window.location.replace('/login');
                 }
             };
 
@@ -605,13 +605,13 @@ const userModule = (function () {
             document.querySelector('#logout-message').innerHTML = 'Logging out...';
 
             for (let i=0;i<20;i++) {
-                history.replaceState({}, '', '/bookshelf/logout');
-                history.pushState({}, '', '/bookshelf/logout');
+                history.replaceState({}, '', '/logout');
+                history.pushState({}, '', '/logout');
             }
 
             setTimeout(function () {
                 document.querySelector('#logout-message').innerHTML = 'Logout';
-                window.location.replace('/bookshelf/logout');
+                window.location.replace('/logout');
                 }, 50);
         }
 
