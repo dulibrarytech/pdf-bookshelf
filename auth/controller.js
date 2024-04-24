@@ -21,7 +21,7 @@
 const CONFIG = require('../config/config');
 const TOKEN = require('../libs/tokens');
 const MODEL = require('../users/model');
-const API_PATH = '/bookshelf';
+const API_PATH = '';
 const VALIDATOR = require('validator');
 
 exports.sso = function (req, res) {

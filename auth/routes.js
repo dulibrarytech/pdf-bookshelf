@@ -20,7 +20,7 @@
 
 const AUTH = require('../auth/controller');
 const TOKEN = require("../libs/tokens");
-const API_PATH = '/bookshelf';
+const API_PATH = ''; // /bookshelf
 module.exports = function (app) {
 
     app.route(API_PATH + '/login')

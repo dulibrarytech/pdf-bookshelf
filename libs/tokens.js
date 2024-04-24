@@ -21,7 +21,7 @@
 const CONFIG = require('../config/config');
 const JWT = require('jsonwebtoken');
 const LOGGER = require('../libs/log4');
-const API_PATH = '/bookshelf';
+const API_PATH = ''; // /bookshelf
 
 /**
  * Creates session token
