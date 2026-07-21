@@ -1,0 +1,28 @@
+<div class="content-card">
+    <div class="content-card-header mb-2">
+        <h2 class="h6 mb-0">Re-sync report</h2>
+        <span class="text-body-secondary small"><%= report.scanned %> file<%= report.scanned === 1 ? '' : 's' %> scanned</span>
+    </div>
+    <div>
+        <div class="row g-3 mb-2">
+            <div class="col-auto"><span class="badge text-bg-success"><%= report.added.length %> added</span></div>
+            <div class="col-auto"><span class="badge text-bg-info"><%= report.updated.length %> updated</span></div>
+            <div class="col-auto"><span class="badge <%= report.missing.length > 0 ? 'text-bg-danger' : 'text-bg-secondary' %>"><%= report.missing.length %> missing file<%= report.missing.length === 1 ? '' : 's' %></span></div>
+        </div>
+        <% if (report.added.length > 0) { %>
+        <h2 class="h6 mt-3">Added to the bookshelf</h2>
+        <ul class="small mb-0"><% for (const name of report.added) { %><li><%= name %></li><% } %></ul>
+        <% } %>
+        <% if (report.updated.length > 0) { %>
+        <h2 class="h6 mt-3">Re-measured</h2>
+        <ul class="small mb-0"><% for (const name of report.updated) { %><li><%= name %></li><% } %></ul>
+        <% } %>
+        <% if (report.missing.length > 0) { %>
+        <h2 class="h6 mt-3 text-danger">Records whose file is missing from storage</h2>
+        <ul class="small mb-0"><% for (const name of report.missing) { %><li><%= name %></li><% } %></ul>
+        <% } %>
+        <% if (report.added.length === 0 && report.updated.length === 0 && report.missing.length === 0) { %>
+        <p class="text-body-secondary mb-0">Storage and database are in sync.</p>
+        <% } %>
+    </div>
+</div>

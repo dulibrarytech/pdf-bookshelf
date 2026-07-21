@@ -1,0 +1,74 @@
+<tr id="user-<%= row.id %>" class="<%= row.is_active ? '' : 'table-secondary text-body-secondary' %>">
+    <td class="fw-semibold"><%= row.first_name %> <%= row.last_name %></td>
+    <td><%= row.du_id %></td>
+    <td><%= row.email %></td>
+    <td><span class="badge <%= row.role === 'admin' ? 'text-bg-dark' : 'text-bg-secondary' %>"><%= row.role %></span></td>
+    <td>
+        <span class="badge rounded-pill <%= row.is_active ? 'text-bg-success' : 'text-bg-secondary' %>">
+            <%= row.is_active ? 'active' : 'inactive' %>
+        </span>
+    </td>
+    <td class="actions-cell">
+        <div class="dropdown">
+            <button type="button" class="kebab-btn"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                    aria-label="Actions for <%= row.first_name %> <%= row.last_name %>"
+                    title="Actions">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <circle cx="12" cy="5" r="1.75"/>
+                    <circle cx="12" cy="12" r="1.75"/>
+                    <circle cx="12" cy="19" r="1.75"/>
+                </svg>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <button type="button" class="dropdown-item"
+                            hx-get="<%= app_path %>/dashboard/users/<%= row.id %>/edit"
+                            hx-target="closest tr" hx-swap="outerHTML">
+                        <%/* pencil icon - edit profile */%>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                        </svg>
+                        Edit
+                    </button>
+                </li>
+                <% if (row.is_active && !(user && user.id === row.id)) { %>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <button type="button" class="dropdown-item text-danger"
+                            hx-delete="<%= app_path %>/dashboard/users/<%= row.id %>"
+                            hx-confirm="Deactivate <%= row.first_name %> <%= row.last_name %>? They lose dashboard access but keep viewer access via SSO."
+                            hx-target="closest tr" hx-swap="outerHTML">
+                        <%/* user-x icon - deactivate */%>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="8.5" cy="7" r="4"/>
+                            <line x1="18" y1="8" x2="23" y2="13"/>
+                            <line x1="23" y1="8" x2="18" y2="13"/>
+                        </svg>
+                        Deactivate
+                    </button>
+                </li>
+                <% } else if (!row.is_active) { %>
+                <li>
+                    <button type="button" class="dropdown-item"
+                            hx-post="<%= app_path %>/dashboard/users/<%= row.id %>/reactivate"
+                            hx-target="closest tr" hx-swap="outerHTML">
+                        <%/* user-check icon - reactivate */%>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="8.5" cy="7" r="4"/>
+                            <polyline points="17 11 19 13 23 9"/>
+                        </svg>
+                        Reactivate
+                    </button>
+                </li>
+                <% } %>
+            </ul>
+        </div>
+    </td>
+</tr>

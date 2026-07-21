@@ -1,0 +1,32 @@
+<%- include('partials/header.ejs') %>
+
+<h1 class="page-title">Utilities</h1>
+<p class="page-subtitle">Administrative maintenance tools.</p>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="content-card">
+            <div class="content-card-header">
+                <h2 class="h5 mb-0">Storage re-sync</h2>
+            </div>
+            <div>
+                <p class="text-body-secondary">
+                    Reconciles the <code>storage/</code> directory with the bookshelf database:
+                    files without a record are added, changed files are re-measured, and records
+                    whose file is missing are reported. Safe to run repeatedly.
+                </p>
+                <button type="button" class="btn btn-primary"
+                        hx-post="<%= app_path %>/dashboard/utils/resync"
+                        hx-target="#resync-report" hx-swap="innerHTML"
+                        hx-indicator="#resync-indicator"
+                        hx-disabled-elt="this">
+                    Run re-sync
+                </button>
+                <span class="spinner-border spinner-border-sm text-secondary htmx-indicator ms-2" id="resync-indicator" aria-hidden="true"></span>
+            </div>
+        </div>
+        <div id="resync-report" class="mt-3" aria-live="polite"></div>
+    </div>
+</div>
+
+<%- include('partials/footer.ejs') %>

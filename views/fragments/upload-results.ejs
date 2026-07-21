@@ -1,0 +1,16 @@
+<div class="content-card">
+    <h2 class="h6 mb-2">Upload results</h2>
+    <ul class="list-group list-group-flush">
+        <% for (const result of results) { %>
+        <li class="list-group-item d-flex align-items-center justify-content-between gap-3">
+            <div>
+                <div class="fw-semibold"><%= result.name %></div>
+                <div class="small <%= result.saved ? 'text-body-secondary' : 'text-danger' %>"><%= result.message %></div>
+            </div>
+            <span class="badge rounded-pill <%= result.saved ? 'text-bg-success' : 'text-bg-danger' %>">
+                <%= result.saved ? format.file_size(result.size) : 'rejected' %>
+            </span>
+        </li>
+        <% } %>
+    </ul>
+</div>

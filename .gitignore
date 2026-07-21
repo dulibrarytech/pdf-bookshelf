@@ -1,0 +1,9 @@
+.env
+node_modules/
+logs/
+storage/*
+!storage/.gitkeep
+public/libs/*
+!public/libs/.gitkeep
+.DS_Store
+.idea/

@@ -1,0 +1,50 @@
+<%- include('partials/header.ejs') %>
+
+<h1 class="page-title">Bookshelf</h1>
+<p class="page-subtitle">Purchased PDFs available to the DU community.</p>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card-stat h-100">
+            <div class="card-stat__value" id="total-pdfs"><%= stats.total_pdfs %></div>
+            <div class="card-stat__label">Total PDFs</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-6">
+        <div class="card-stat h-100">
+            <div class="card-stat__value text-truncate" style="font-size: 20px;" id="most-accessed-file"><%= stats.most_accessed_file %></div>
+            <div class="card-stat__label">Most Requested File</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card-stat h-100">
+            <div class="card-stat__value" id="total-file-requests"><%= stats.total_hits %></div>
+            <div class="card-stat__label">Total Requests</div>
+        </div>
+    </div>
+</div>
+
+<div class="content-card">
+    <div class="content-card-header">
+        <h2 class="h5 mb-0">All PDFs</h2>
+        <div class="control-group" style="min-width: 280px;">
+            <span class="spinner-border spinner-border-sm text-secondary htmx-indicator" id="search-indicator" aria-hidden="true"></span>
+            <input type="search" class="form-control form-control-sm" name="q" value="<%= table.q %>"
+                   placeholder="Search title or filename&hellip;" aria-label="Search PDFs"
+                   hx-get="<%= app_path %>/dashboard/pdfs"
+                   hx-trigger="input changed delay:300ms, search"
+                   hx-target="#bookshelf-table" hx-swap="innerHTML"
+                   hx-indicator="#search-indicator">
+        </div>
+    </div>
+    <%/* persistent live regions: app.js copies the result count here after each
+         search/sort/page swap, and announces copy-to-clipboard outcomes, so
+         screen readers hear both (WCAG 4.1.3) */%>
+    <div id="search-status" class="visually-hidden" aria-live="polite"></div>
+    <div id="copy-status" class="visually-hidden" aria-live="polite"></div>
+    <div id="bookshelf-table">
+        <%- include('fragments/pdf-table', {table: table}) %>
+    </div>
+</div>
+
+<%- include('partials/footer.ejs') %>

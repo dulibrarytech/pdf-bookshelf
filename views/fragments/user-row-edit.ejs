@@ -1,0 +1,41 @@
+<tr id="user-<%= row.id %>" class="is-editing">
+    <td colspan="6" class="edit-cell">
+        <div class="row g-3 align-items-end">
+            <div class="col-6 col-md-2">
+                <label class="form-label" for="edit-first-<%= row.id %>">First name</label>
+                <input type="text" class="form-control form-control-sm" id="edit-first-<%= row.id %>"
+                       name="first_name" value="<%= row.first_name %>" maxlength="255" required autofocus>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label" for="edit-last-<%= row.id %>">Last name</label>
+                <input type="text" class="form-control form-control-sm" id="edit-last-<%= row.id %>"
+                       name="last_name" value="<%= row.last_name %>" maxlength="255" required>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="edit-email-<%= row.id %>">Email</label>
+                <input type="email" class="form-control form-control-sm" id="edit-email-<%= row.id %>"
+                       name="email" value="<%= row.email %>" maxlength="255" required>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label" for="edit-role-<%= row.id %>">Role</label>
+                <select class="form-select form-select-sm" id="edit-role-<%= row.id %>" name="role">
+                    <option value="staff" <%= row.role === 'staff' ? 'selected' : '' %>>Staff</option>
+                    <option value="admin" <%= row.role === 'admin' ? 'selected' : '' %>>Admin</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <div class="form-label">DU ID</div>
+                <div class="edit-static"><%= row.du_id %></div>
+            </div>
+        </div>
+        <div class="mt-3 text-end">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-refocus="edit"
+                    hx-get="<%= app_path %>/dashboard/users/<%= row.id %>/row"
+                    hx-target="closest tr" hx-swap="outerHTML">Cancel</button>
+            <button type="button" class="btn btn-sm btn-primary" data-refocus="edit"
+                    hx-put="<%= app_path %>/dashboard/users/<%= row.id %>"
+                    hx-include="closest tr"
+                    hx-target="closest tr" hx-swap="outerHTML">Save</button>
+        </div>
+    </td>
+</tr>

@@ -1,0 +1,18 @@
+<tr id="pdf-<%= row.uuid %>">
+    <td colspan="4">
+        <label class="form-label small text-body-secondary mb-1" for="title-<%= row.uuid %>">
+            Title for <%= row.filename %>.pdf
+        </label>
+        <input type="text" class="form-control form-control-sm" id="title-<%= row.uuid %>"
+               name="title" value="<%= row.title || row.filename %>" maxlength="500" required autofocus>
+    </td>
+    <td class="text-end text-nowrap">
+        <button type="button" class="btn btn-sm btn-primary" data-refocus="edit"
+                hx-put="<%= app_path %>/dashboard/pdfs/<%= row.uuid %>"
+                hx-include="closest tr"
+                hx-target="closest tr" hx-swap="outerHTML">Save</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-refocus="edit"
+                hx-get="<%= app_path %>/dashboard/pdfs/<%= row.uuid %>/row"
+                hx-target="closest tr" hx-swap="outerHTML">Cancel</button>
+    </td>
+</tr>

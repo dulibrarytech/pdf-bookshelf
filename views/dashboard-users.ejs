@@ -1,0 +1,76 @@
+<%- include('partials/header.ejs') %>
+
+<h1 class="page-title">Users</h1>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="content-card">
+            <div class="content-card-header">
+                <h2 class="h5 mb-0">Dashboard users</h2>
+            </div>
+            <%/* no overflow wrapper: it would clip the kebab dropdowns */%>
+            <div>
+                <table class="queue-table mb-0">
+                    <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">DU ID</th>
+                        <th scope="col">Email</th>
+                        <th scope="col">Role</th>
+                        <th scope="col">Status</th>
+                        <th scope="col" class="actions-cell">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="user-rows">
+                    <% for (const row of users) { %>
+                        <%- include('fragments/user-row', {row: row}) %>
+                    <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="content-card">
+            <div class="content-card-header">
+                <h2 class="h5 mb-0">Add user</h2>
+            </div>
+            <div>
+                <%/* errors render here; successful saves are retargeted to #user-rows
+                     by the HX-Retarget/HX-Reswap response headers */%>
+                <form id="add-user-form"
+                      hx-post="<%= app_path %>/dashboard/users"
+                      hx-target="#add-user-message" hx-swap="innerHTML">
+                    <div class="mb-2">
+                        <label class="form-label" for="add-du-id">DU ID</label>
+                        <input type="text" class="form-control" id="add-du-id" name="du_id"
+                               inputmode="numeric" pattern="[0-9]{1,10}" maxlength="10" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="add-email">Email</label>
+                        <input type="email" class="form-control" id="add-email" name="email" maxlength="255" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="add-first-name">First name</label>
+                        <input type="text" class="form-control" id="add-first-name" name="first_name" maxlength="255" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="add-last-name">Last name</label>
+                        <input type="text" class="form-control" id="add-last-name" name="last_name" maxlength="255" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="add-role">Role</label>
+                        <select class="form-select" id="add-role" name="role">
+                            <option value="staff" selected>Staff</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div id="add-user-message" class="mb-3" aria-live="polite"></div>
+                    <button type="submit" class="btn btn-primary">Add user</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('partials/footer.ejs') %>
