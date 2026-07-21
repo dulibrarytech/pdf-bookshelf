@@ -3,7 +3,11 @@ node_modules/
 logs/
 storage/*
 !storage/.gitkeep
+# bootstrap/htmx are vendored from node_modules by `npm run vendor` and stay
+# out of git; pdfjs is COMMITTED - it is the v1 build hand-patched for cookie
+# auth (not reproducible from npm), so a fresh clone must include it.
 public/libs/*
 !public/libs/.gitkeep
+!public/libs/pdfjs/
 .DS_Store
 .idea/
