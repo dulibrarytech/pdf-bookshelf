@@ -59,7 +59,7 @@ module.exports = function () {
                 fontSrc: ["'self'"],
                 objectSrc: ["'none'"],
                 frameAncestors: ["'self'"],
-                /* pdf.js (phase 3) renders pages in workers from blob: URLs */
+                /* pdf.js renders pages in workers from blob: URLs */
                 workerSrc: ["'self'", 'blob:'],
                 /*
                  * helmet's default CSP adds upgrade-insecure-requests, which

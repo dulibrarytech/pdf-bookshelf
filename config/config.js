@@ -38,11 +38,6 @@ module.exports = Object.freeze({
     sso_logout_url: process.env.SSO_LOGOUT_URL,
     /* legacy HTTP_HOST string match - defense-in-depth only, never the sole check */
     sso_host: process.env.SSO_HOST,
-    /*
-     * HMAC + freshness are BUILT but opt-in (same rollout as repo-backend-v2):
-     * the DU identity proxy does not sign callbacks yet. Flip to '1' the moment
-     * it does - until then the callback trusts the POSTed employeeID (legacy).
-     */
     sso_require_hmac: process.env.SSO_REQUIRE_HMAC === '1',
     sso_require_freshness: process.env.SSO_REQUIRE_FRESHNESS === '1',
     sso_max_skew_seconds: parseInt(process.env.SSO_MAX_SKEW_SECONDS, 10) || 300,
