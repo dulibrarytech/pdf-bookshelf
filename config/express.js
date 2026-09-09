@@ -1,19 +1,17 @@
 /**
-
- Copyright 2026 University of Denver
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
+ * Copyright 2026 University of Denver
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 'use strict';
@@ -52,11 +50,23 @@ module.exports = function () {
         contentSecurityPolicy: {
             directives: {
                 defaultSrc: ["'self'"],
-                scriptSrc: ["'self'"],
+                /*
+                 * NOTE the absence of 'unsafe-eval'. pdf.js feature-tests
+                 * `new Function("")` and takes a slower non-eval path when CSP
+                 * blocks it; that is the layer which made CVE-2024-4367
+                 * unexploitable here while the viewer was still on 2.8.335.
+                 * Keep it out even though the viewer is now patched.
+                 * 'wasm-unsafe-eval' permits WebAssembly ONLY - pdf.js 6 uses
+                 * it for JPEG 2000 images and ICC colour profiles - and does
+                 * not re-enable eval/Function.
+                 */
+                scriptSrc: ["'self'", "'wasm-unsafe-eval'"],
                 /* style ATTRIBUTES only (Bootstrap-idiomatic); scripts stay self-only */
                 styleSrc: ["'self'", "'unsafe-inline'"],
-                imgSrc: ["'self'", 'data:'],
-                fontSrc: ["'self'"],
+                /* pdf.js paints page images from blob: canvases */
+                imgSrc: ["'self'", 'data:', 'blob:'],
+                /* fonts embedded in a PDF are handed to the browser as data: URLs */
+                fontSrc: ["'self'", 'data:'],
                 objectSrc: ["'none'"],
                 frameAncestors: ["'self'"],
                 /* pdf.js renders pages in workers from blob: URLs */
@@ -95,7 +105,7 @@ module.exports = function () {
     });
 
     /* central error handler - answer the request, never hang or leak internals */
-    APP.use(function (error, req, res, next) {
+    APP.use(function (error, req, res, _next) {
         LOGGER.module().error('ERROR: [/config/express (error handler)] ' + error.message);
         res.status(500).render('error', {
             message: 'An unexpected error occurred.'
@@ -103,6 +113,12 @@ module.exports = function () {
     });
 
     SERVER.listen(CONFIG.app_port);
+
+    /*
+     * exposed so a caller can close it - the RBAC route tests boot the real
+     * app on an ephemeral port (APP_PORT=0) and shut it down afterwards
+     */
+    APP.server = SERVER;
 
     return APP;
 };

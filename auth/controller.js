@@ -1,19 +1,17 @@
 /**
-
- Copyright 2026 University of Denver
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
+ * Copyright 2026 University of Denver
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 'use strict';
@@ -24,11 +22,20 @@
  * GET  /login  -> bounce to the SSO provider, preserving ?next
  * POST /sso    -> callback from the identity proxy; verification order:
  *   1. request shape (numeric employeeID <= 10 digits)
- *   2. HMAC signature            (SSO_REQUIRE_HMAC, default on)
- *   3. timestamp + nonce         (SSO_REQUIRE_FRESHNESS, default on)
+ *   2. HMAC signature            (SSO_REQUIRE_HMAC, default OFF)
+ *   3. timestamp + nonce         (SSO_REQUIRE_FRESHNESS, default OFF)
  *   4. legacy HTTP_HOST match    (defense-in-depth only, if SSO_HOST set)
  *   5. tbl_users lookup decides the tier, THEN the cookie is minted
  * GET  /logout -> clear cookie, render logout page
+ *
+ * Layers 2 and 3 are BUILT AND TESTED BUT OFF BY DEFAULT, because the DU
+ * authproxy does not sign its callbacks yet. Enabling them is coordinated
+ * with DU IT and is not a change to make here unilaterally - the same
+ * position repo-backend-v2 is in. While they are off, identity is whatever
+ * the callback POSTs and SSO_HOST is the only thing narrowing who may send
+ * it, so SSO_HOST should always be set in a deployed environment. The app
+ * logs a warning at boot naming exactly which layers are inactive, so this
+ * posture is visible rather than something you have to read config to learn.
  *
  * The two v1 critical holes this replaces: identity was trusted straight from
  * the browser-POSTed body, and the viewer JWT was minted BEFORE any user

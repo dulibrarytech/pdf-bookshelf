@@ -52,3 +52,39 @@ test('jwt extract reads only the session cookie', () => {
     assert.equal(JWT.extract({cookies: {}}), null);
     assert.equal(JWT.extract({}), null);
 });
+
+/* --- cookie scope (L4) --- */
+
+function recording_res() {
+    const calls = [];
+    return {
+        calls,
+        cookie: (name, value, options) => calls.push({type: 'set', name, value, options}),
+        clearCookie: (name, options) => calls.push({type: 'clear', name, options})
+    };
+}
+
+test('the session cookie is scoped to APP_PATH, not the whole domain', () => {
+
+    const res = recording_res();
+    JWT.issue_cookie(res, {sub: '871095226', tier: 'viewer'});
+
+    assert.equal(res.calls.length, 1);
+    assert.equal(res.calls[0].options.path, '/bookshelf');
+    /* the protections that were already right must survive the change */
+    assert.equal(res.calls[0].options.httpOnly, true);
+    assert.equal(res.calls[0].options.sameSite, 'lax');
+});
+
+test('logout clears the APP_PATH cookie and the legacy root one', () => {
+
+    /*
+     * a session issued before the scope narrowed is root-scoped; clearing only
+     * the APP_PATH cookie would leave the user signed in
+     */
+    const res = recording_res();
+    JWT.clear_cookie(res);
+
+    const paths = res.calls.filter((c) => c.type === 'clear').map((c) => c.options.path);
+    assert.deepEqual(paths.sort(), ['/', '/bookshelf']);
+});

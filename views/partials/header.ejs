@@ -49,8 +49,8 @@
 
     <%
         /* sidebar highlighting: pages pass `active` via view locals */
-        var nav_active = typeof active !== 'undefined' ? active : '';
-        var is_admin = typeof user !== 'undefined' && user && user.role === 'admin';
+        const nav_active = typeof active !== 'undefined' ? active : '';
+        const is_admin = typeof user !== 'undefined' && user && user.role === 'admin';
     %>
     <nav class="app-sidebar" aria-label="Main navigation">
         <a href="<%= app_path %>/dashboard/home"

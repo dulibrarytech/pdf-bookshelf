@@ -1,17 +1,19 @@
 <!doctype html>
 <html lang="en">
+<%/* app_path comes from APP.locals, so this renders correctly even from the
+     404/500 handlers, which pass nothing but a message */%>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><%= typeof appname !== 'undefined' ? appname : 'PDF Bookshelf @ DU' %></title>
-    <link rel="icon" type="image/svg+xml" href="/bookshelf/static/images/du-main-tab-logo.svg">
-    <link rel="stylesheet" href="/bookshelf/static/libs/bootstrap/bootstrap.min.css">
-    <link rel="stylesheet" href="/bookshelf/static/assets/styles.css">
+    <link rel="icon" type="image/svg+xml" href="<%= app_path %>/static/images/du-main-tab-logo.svg">
+    <link rel="stylesheet" href="<%= app_path %>/static/libs/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" href="<%= app_path %>/static/assets/styles.css">
 </head>
 <body>
 <main class="message-shell">
     <div class="message-card">
-        <img class="du-logo" src="/bookshelf/static/images/du-logo.png"
+        <img class="du-logo" src="<%= app_path %>/static/images/du-logo.png"
              alt="University Libraries — University of Denver">
         <h1 class="h5 mb-3">PDF Bookshelf <span style="color: var(--du-crimson);">@ DU</span></h1>
         <p class="text-body-secondary mb-0"><%= message %></p>

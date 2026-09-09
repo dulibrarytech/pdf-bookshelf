@@ -1,19 +1,17 @@
 /**
-
- Copyright 2026 University of Denver
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
+ * Copyright 2026 University of Denver
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 'use strict';
@@ -66,13 +64,23 @@ exports.verify = function (token) {
     });
 };
 
+/*
+ * Scoped to APP_PATH, not '/'. Everything that reads the session lives under
+ * APP_PATH; the only routes outside it are the two legacy redirects, which
+ * take no auth. A root-scoped cookie was being sent to every co-hosted app
+ * behind the same nginx vhost - /repo and /exhibits-dashboard - which have no
+ * business receiving this app's session token.
+ *
+ * Falls back to '/' when APP_PATH is empty, which is the documented way to
+ * mount at the domain root.
+ */
 function cookie_options() {
 
     return {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        path: '/'
+        path: CONFIG.app_path || '/'
     };
 }
 
@@ -93,7 +101,19 @@ exports.issue_cookie = function (res, payload) {
  * @param res
  */
 exports.clear_cookie = function (res) {
-    res.clearCookie(COOKIE_NAME, cookie_options());
+
+    const options = cookie_options();
+    res.clearCookie(COOKIE_NAME, options);
+
+    /*
+     * Also clear a root-scoped cookie, which is what this app set before the
+     * scope was narrowed. A browser holds the two independently and sends
+     * both, so clearing only the APP_PATH one would leave a session issued
+     * before that change alive through logout. Harmless once none are left.
+     */
+    if (options.path !== '/') {
+        res.clearCookie(COOKIE_NAME, Object.assign({}, options, {path: '/'}));
+    }
 };
 
 /**

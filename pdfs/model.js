@@ -1,19 +1,17 @@
 /**
-
- Copyright 2026 University of Denver
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
+ * Copyright 2026 University of Denver
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 'use strict';
@@ -69,12 +67,28 @@ exports.increment_hits = function (id) {
  * @param options {q, sort, dir, page}
  * @returns {Promise<{rows, page, page_count, total, q, sort, dir}>}
  */
+/*
+ * Normalises the query-string options the bookshelf table is driven by.
+ *
+ * `sort` in particular goes into an ORDER BY, so it is whitelisted against
+ * SORTABLE rather than passed through - anything unrecognised falls back to
+ * `created` instead of reaching the query builder.
+ *
+ * @param options {q, sort, dir, page} straight off req.query
+ */
+function normalize_list_options(options = {}) {
+
+    return {
+        q: typeof options.q === 'string' ? options.q.trim() : '',
+        sort: SORTABLE.includes(options.sort) ? options.sort : 'created',
+        dir: options.dir === 'asc' ? 'asc' : 'desc',
+        page: Math.max(1, parseInt(options.page, 10) || 1)
+    };
+}
+
 exports.list = async function (options = {}) {
 
-    const q = typeof options.q === 'string' ? options.q.trim() : '';
-    const sort = SORTABLE.includes(options.sort) ? options.sort : 'created';
-    const dir = options.dir === 'asc' ? 'asc' : 'desc';
-    const page = Math.max(1, parseInt(options.page, 10) || 1);
+    const { q, sort, dir, page } = normalize_list_options(options);
 
     function scope(builder) {
 
@@ -125,3 +139,6 @@ exports.deactivate = function (uuid) {
         .where({uuid: String(uuid)})
         .update({is_active: 0});
 };
+
+/* exported for tests */
+exports._normalize_list_options = normalize_list_options;

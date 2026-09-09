@@ -1,19 +1,17 @@
 /**
-
- Copyright 2026 University of Denver
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
+ * Copyright 2026 University of Denver
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 'use strict';
@@ -102,7 +100,40 @@ exports.up = async function (knex) {
     }
 };
 
+/*
+ * Rolling this back is not a recovery path - it destroys data that cannot be
+ * put back, so it refuses unless you say out loud that the database is
+ * disposable.
+ *
+ * The uuids are the reason. They were minted per row when this migration ran,
+ * so dropping the column deletes them; re-running up() generates DIFFERENT
+ * ones. Every /pdf/<uuid> and /viewer?pdf=<uuid> link anyone has bookmarked,
+ * catalogued or shared breaks permanently, and nothing can map the old value
+ * to the new. Going with them: titles edited in the dashboard (up() backfills
+ * title from filename), sha256, uploaded_by, and is_active - which means every
+ * soft-deleted record comes back. The v1 duplicate rows this migration merged
+ * are gone for good either way.
+ *
+ * On a throwaway local database that is all fine, and re-testing the migration
+ * is a legitimate thing to want:
+ *
+ *     ALLOW_DESTRUCTIVE_ROLLBACK=1 npm run migrate:rollback
+ *
+ * Never set that against a database anyone else is using. To undo a bad deploy,
+ * restore from a dump instead.
+ */
 exports.down = async function (knex) {
+
+    if (process.env.ALLOW_DESTRUCTIVE_ROLLBACK !== '1') {
+        throw new Error(
+            'Refusing to roll back 20260720000002_v2_upgrades: this drops tbl_pdfs.uuid, ' +
+            'and those public identifiers cannot be recovered - re-running the migration ' +
+            'mints different ones, so every catalogued and bookmarked PDF link breaks. ' +
+            'Dashboard-edited titles, sha256, uploaded_by and is_active (soft deletes) are ' +
+            'lost with it. Restore from a dump to undo a deploy. If this database really is ' +
+            'disposable: ALLOW_DESTRUCTIVE_ROLLBACK=1 npm run migrate:rollback'
+        );
+    }
 
     await knex.raw('ALTER TABLE tbl_users DROP COLUMN role');
 

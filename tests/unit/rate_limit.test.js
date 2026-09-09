@@ -6,7 +6,7 @@ const RATE_LIMIT = require('../../libs/rate_limit');
 
 function run(middleware, ip) {
 
-    let result = {passed: false, status: null};
+    const result = {passed: false, status: null};
     const req = {ip: ip};
     const res = {
         status(code) { result.status = code; return this; },

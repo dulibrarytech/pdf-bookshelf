@@ -17,11 +17,21 @@
                        name="email" value="<%= row.email %>" maxlength="255" required>
             </div>
             <div class="col-6 col-md-2">
-                <label class="form-label" for="edit-role-<%= row.id %>">Role</label>
-                <select class="form-select form-select-sm" id="edit-role-<%= row.id %>" name="role">
-                    <option value="staff" <%= row.role === 'staff' ? 'selected' : '' %>>Staff</option>
-                    <option value="admin" <%= row.role === 'admin' ? 'selected' : '' %>>Admin</option>
-                </select>
+                <% if (user && user.id === row.id) { %>
+                    <%/* your own role is not yours to change - same treatment as
+                         the DU ID, and the server refuses it either way. The
+                         hidden input matters: validate_profile() reads a missing
+                         role as 'staff', so dropping the field would demote. */%>
+                    <div class="form-label">Role</div>
+                    <div class="edit-static"><%= row.role %></div>
+                    <input type="hidden" name="role" value="<%= row.role %>">
+                <% } else { %>
+                    <label class="form-label" for="edit-role-<%= row.id %>">Role</label>
+                    <select class="form-select form-select-sm" id="edit-role-<%= row.id %>" name="role">
+                        <option value="staff" <%= row.role === 'staff' ? 'selected' : '' %>>Staff</option>
+                        <option value="admin" <%= row.role === 'admin' ? 'selected' : '' %>>Admin</option>
+                    </select>
+                <% } %>
             </div>
             <div class="col-6 col-md-2">
                 <div class="form-label">DU ID</div>

@@ -1,19 +1,17 @@
 /**
-
- Copyright 2026 University of Denver
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
+ * Copyright 2026 University of Denver
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 'use strict';
@@ -22,8 +20,8 @@
  * Upload flow (v1's POST /uploads had NO auth and a broken file filter):
  *   1. multer stages each file into storage/.tmp under a random name
  *   2. per file: sha256, sanitized final name, DB uniqueness check
- *   3. rename into storage/ + insert row; conflicts are reported per file
- *      and never clobber an existing PDF
+ *   3. publish into storage/ exclusively + insert row; a name already taken
+ *      on disk or in the database is reported per file and never overwritten
  */
 
 const FS = require('node:fs');
@@ -33,6 +31,7 @@ const CONFIG = require('../config/config');
 const DB = require('../config/db');
 const FORMAT = require('../libs/format');
 const LOGGER = require('../libs/log4');
+const STORAGE = require('../libs/storage');
 
 const PDFS = 'tbl_pdfs';
 /* %PDF- */
@@ -110,6 +109,8 @@ exports.upload = async function (req, res) {
         /* multer decodes originalname as latin1; recover utf8 titles */
         const original = Buffer.from(file.originalname, 'latin1').toString('utf8');
         const filename = sanitize_filename(original);
+        const destination = PATH.join(PATH.resolve(CONFIG.storage_path), filename + '.pdf');
+        let published = false;
 
         try {
 
@@ -128,9 +129,25 @@ exports.upload = async function (req, res) {
             }
 
             const sha256 = await sha256_file(file.path);
-            const destination = PATH.join(PATH.resolve(CONFIG.storage_path), filename + '.pdf');
 
-            await FS.promises.rename(file.path, destination);
+            /*
+             * The check above only sees the database. Publishing exclusively
+             * is what actually protects bytes already in storage/ - from a
+             * file with no row, and from a second upload of the same name
+             * racing this one past the check.
+             */
+            try {
+                await STORAGE.move_exclusive(file.path, destination);
+            } catch (error) {
+
+                if (error.code === 'EEXIST') {
+                    throw new Error('A file with this name is already in storage. If it is not on the bookshelf, run Utilities → Re-sync.');
+                }
+
+                throw error;
+            }
+
+            published = true;
 
             await DB(PDFS).insert({
                 uuid: CRYPTO.randomUUID(),
@@ -144,6 +161,11 @@ exports.upload = async function (req, res) {
             results.push({name: original, size: file.size, saved: true, message: 'Saved.'});
 
         } catch (error) {
+
+            /* a failure after the move would strand a file no row points at */
+            if (published) {
+                await FS.promises.unlink(destination).catch(function () {});
+            }
 
             results.push({name: original, size: file.size, saved: false, message: error.message});
             FS.promises.unlink(file.path).catch(function () {});
@@ -166,7 +188,7 @@ exports.upload = async function (req, res) {
 /**
  * Multer error handler - answers with the same result fragment shape
  */
-exports.upload_error = function (error, req, res, next) {
+exports.upload_error = function (error, req, res, _next) {
 
     LOGGER.module().error('ERROR: [/uploads/controller (upload_error)] ' + error.message);
 
@@ -178,3 +200,7 @@ exports.upload_error = function (error, req, res, next) {
         results: [{name: 'Upload rejected', size: 0, saved: false, message: message}]
     }));
 };
+
+/* exported for tests */
+exports._sanitize_filename = sanitize_filename;
+exports._is_pdf = is_pdf;
