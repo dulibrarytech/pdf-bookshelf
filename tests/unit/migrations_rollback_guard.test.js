@@ -16,6 +16,7 @@ const assert = require('node:assert/strict');
 
 const BASELINE = require('../../knex/migrations/20260720000001_v1_baseline');
 const UPGRADES = require('../../knex/migrations/20260720000002_v2_upgrades');
+const UNIQUE_DU_ID = require('../../knex/migrations/20260921000003_unique_du_id');
 
 function recording_knex() {
 
@@ -82,6 +83,35 @@ test('rolling back the baseline is refused - there is nothing to reverse', async
 
     await assert.rejects(() => BASELINE.down(knex), /nothing to reverse/);
     assert.deepEqual(knex.used, []);
+});
+
+test('rolling back the du_id index is refused without the opt-in, like every other migration', async () => {
+
+    /*
+     * dropping the index loses nothing, but on a fresh database all three
+     * migrations share a batch - a quiet success here would leave it
+     * half-reversed when 002 refuses next
+     */
+    delete process.env.ALLOW_DESTRUCTIVE_ROLLBACK;
+    const knex = recording_knex();
+
+    await assert.rejects(() => UNIQUE_DU_ID.down(knex), /ALLOW_DESTRUCTIVE_ROLLBACK=1/);
+    assert.deepEqual(knex.used, []);
+});
+
+test('with the opt-in, rolling back the du_id index drops it', async () => {
+
+    process.env.ALLOW_DESTRUCTIVE_ROLLBACK = '1';
+    const knex = recording_knex();
+
+    try {
+        await UNIQUE_DU_ID.down(knex);
+    } finally {
+        delete process.env.ALLOW_DESTRUCTIVE_ROLLBACK;
+    }
+
+    /* the stub records the first 40 characters of each statement */
+    assert.ok(knex.used.some((u) => u.startsWith('raw:ALTER TABLE tbl_users DROP INDEX')), knex.used.join(', '));
 });
 
 test('the baseline no-ops under the opt-in so the batch can roll back cleanly', async () => {

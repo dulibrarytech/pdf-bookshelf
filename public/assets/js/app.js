@@ -28,16 +28,17 @@
      * The add-user form is special-cased into its message slot so a rejected
      * submit doesn't wipe the form.
      *
-     * 401 and 403 are the exception: those come from the auth middleware,
-     * which drives them with response headers (HX-Redirect, HX-Reswap none)
-     * and sends no body. Forcing a swap on them used to put the full-page
-     * error template inside a table row, and raced the login redirect.
+     * 401, 403 and 429 are the exception: those come from the auth middleware
+     * and the rate limiter, which drive them with response headers
+     * (HX-Redirect, HX-Reswap none, HX-Trigger) and send no body. Forcing a
+     * swap on them used to put the full-page error template inside a table
+     * row, and raced the login redirect.
      */
     document.body.addEventListener('htmx:beforeSwap', function (event) {
 
         const status = event.detail.xhr.status;
 
-        if (status < 400 || status >= 500 || status === 401 || status === 403) {
+        if (status < 400 || status >= 500 || status === 401 || status === 403 || status === 429) {
             return;
         }
 
@@ -52,7 +53,7 @@
             return;
         }
 
-        document.querySelectorAll('.app-sidebar a[title], .app-header .header-actions a[title]').forEach(function (el) {
+        document.querySelectorAll('.app-sidebar a[title], .app-header .header-actions a[title], .app-header .header-actions button[title]').forEach(function (el) {
             new window.bootstrap.Tooltip(el, {
                 placement: el.closest('.app-sidebar') !== null ? 'right' : 'bottom',
                 delay: {show: 100, hide: 0},

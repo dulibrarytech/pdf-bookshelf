@@ -1,0 +1,6 @@
+<%/* A one-cell message row for a table's fragment endpoints: colspan is the
+     table's column count (5 for the bookshelf, 6 for users). The message is
+     escaped here, which is the point - it used to be interpolated into a
+     template literal in the controllers, one `new ValidationError(body.x)`
+     away from injected markup. */%>
+<tr><td colspan="<%= colspan %>"<% if (typeof css !== 'undefined' && css) { %> class="<%= css %>"<% } %>><%= message %></td></tr>

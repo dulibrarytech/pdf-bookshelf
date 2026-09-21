@@ -3,10 +3,11 @@ node_modules/
 logs/
 storage/*
 !storage/.gitkeep
-# bootstrap/htmx are vendored from node_modules by `npm run vendor`, and pdfjs
-# by `npm run vendor:pdfjs` from a GitHub release. bootstrap/htmx stay out of
-# git; pdfjs is COMMITTED so a fresh clone can serve the viewer offline (npm
-# ships the library but not the viewer application).
+# bootstrap/htmx are vendored from node_modules by `npm run vendor` (npm's
+# postinstall hook runs it too), and pdfjs by `npm run vendor:pdfjs` from a
+# GitHub release. bootstrap/htmx stay out of git; pdfjs is COMMITTED so a fresh
+# clone can serve the viewer offline (npm ships the library but not the viewer
+# application).
 public/libs/*
 !public/libs/.gitkeep
 !public/libs/pdfjs/

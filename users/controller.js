@@ -48,6 +48,17 @@ function is_self_demotion(actor, target_id, requested_role) {
         && requested_role !== 'admin';
 }
 
+/**
+ * Answers a row-shaped failure; the users table has six columns. A refusal
+ * the model raised (validation, conflict, not found) is shown as it is;
+ * anything else is logged and replaced by the fallback, so a database error
+ * never reaches the screen. Rendered through a view so the text is escaped on
+ * the way out - this used to interpolate error.message into a template
+ * literal, safe only while every message was a static string.
+ * @param res
+ * @param error
+ * @param fallback shown in place of an unexpected error's own message
+ */
 function error_row(res, error, fallback) {
 
     const status = error.status || 500;
@@ -56,7 +67,11 @@ function error_row(res, error, fallback) {
         LOGGER.module().error('ERROR: [/users/controller] ' + error.message);
     }
 
-    res.status(status).send(`<tr><td colspan="6" class="text-danger">${status === 500 ? fallback : error.message}</td></tr>`);
+    res.status(status).render('fragments/message-row', {
+        colspan: 6,
+        css: 'text-danger',
+        message: status === 500 ? fallback : error.message
+    });
 }
 
 exports.get_users_page = async function (req, res) {
@@ -92,7 +107,7 @@ exports.create_user = async function (req, res) {
             LOGGER.module().error('ERROR: [/users/controller (create_user)] ' + error.message);
         }
 
-        res.status(status).send(`<div class="alert alert-danger mb-0">${status === 500 ? 'Unable to save the user.' : error.message}</div>`);
+        res.status(status).render('fragments/alert', {message: status === 500 ? 'Unable to save the user.' : error.message});
     }
 };
 

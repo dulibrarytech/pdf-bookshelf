@@ -1,0 +1,15 @@
+<%/* Polls the status route until the run finishes, when the report (or a
+     failure notice) takes this element's place and the polling stops with
+     it. The surrounding #resync-report is the live region. */%>
+<div class="content-card" id="resync-running"
+     hx-get="<%= app_path %>/dashboard/utils/resync/status"
+     hx-trigger="every 2s" hx-target="this" hx-swap="outerHTML">
+    <div class="content-card-header mb-2">
+        <h2 class="h6 mb-0">Re-sync running</h2>
+        <span class="spinner-border spinner-border-sm text-secondary" aria-hidden="true"></span>
+    </div>
+    <p class="text-body-secondary small mb-0">
+        <% if (joined) { %>Another administrator had already started this run; this is its progress. <% } %>
+        <% if (job.scanned === null) { %>Scanning storage&hellip;<% } else if (job.progress.total === 0) { %><%= job.scanned %> files scanned; nothing to measure.<% } else { %><%= job.scanned %> files scanned; <%= job.progress.done %> of <%= job.progress.total %> measured.<% } %>
+    </p>
+</div>

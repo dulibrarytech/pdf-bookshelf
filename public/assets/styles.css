@@ -261,7 +261,8 @@ h3 {
     font-size: 13px;
 }
 
-.app-header .header-actions a {
+.app-header .header-actions a,
+.app-header .header-actions button {
     color: var(--text-muted);
     display: inline-flex;
     align-items: center;
@@ -271,7 +272,21 @@ h3 {
     border-radius: var(--radius-sm);
 }
 
-.app-header .header-actions a:hover {
+/* the sign-out control is a form button, styled as the icon link it replaced */
+.app-header .header-actions form.sign-out {
+    margin: 0;
+    display: inline-flex;
+}
+
+.app-header .header-actions button {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+}
+
+.app-header .header-actions a:hover,
+.app-header .header-actions button:hover {
     background: var(--hairline-soft);
     color: var(--text-strong);
     text-decoration: none;

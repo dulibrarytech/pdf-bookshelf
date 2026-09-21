@@ -1,4 +1,8 @@
 <%
+/* the search term and the "Show removed" toggle ride every sort and page
+   link, so neither is lost when the table is re-fetched */
+const filters = `q=${encodeURIComponent(table.q)}${table.removed ? '&removed=1' : ''}`;
+
 /* sortable column header: toggles direction when already sorted by that column.
    Emits the whole <th> so the active column carries aria-sort (WCAG 1.3.1);
    the arrow glyph is decorative - aria-hidden. */
@@ -7,12 +11,12 @@ function sort_th(key, label) {
     const dir = (is_active && table.dir === 'asc') ? 'desc' : 'asc';
     const aria_sort = is_active ? ` aria-sort="${table.dir === 'asc' ? 'ascending' : 'descending'}"` : '';
     const arrow = is_active ? `<span aria-hidden="true">${table.dir === 'asc' ? ' &#9650;' : ' &#9660;'}</span>` : '';
-    const url = `${app_path}/dashboard/pdfs?q=${encodeURIComponent(table.q)}&sort=${key}&dir=${dir}&page=1`;
+    const url = `${app_path}/dashboard/pdfs?${filters}&sort=${key}&dir=${dir}&page=1`;
     return `<th scope="col"${aria_sort}><a href="#" hx-get="${url}" hx-target="#bookshelf-table" hx-swap="innerHTML">${label}${arrow}</a></th>`;
 }
 
 function page_link(page) {
-    return `${app_path}/dashboard/pdfs?q=${encodeURIComponent(table.q)}&sort=${table.sort}&dir=${table.dir}&page=${page}`;
+    return `${app_path}/dashboard/pdfs?${filters}&sort=${table.sort}&dir=${table.dir}&page=${page}`;
 }
 %>
 <%/* no overflow wrapper: it would clip the kebab dropdowns (repov2 parity) */%>
@@ -44,7 +48,7 @@ function page_link(page) {
 
 <div class="d-flex align-items-center justify-content-between">
     <span class="text-body-secondary small" id="bookshelf-count">
-        <%= table.total %> PDF<%= table.total === 1 ? '' : 's' %><% if (table.q.length > 0) { %> matching &ldquo;<%= table.q %>&rdquo;<% } %><% if (table.page_count > 1) { %>, page <%= table.page %> of <%= table.page_count %><% } %>
+        <%= table.total %> PDF<%= table.total === 1 ? '' : 's' %><% if (table.removed) { %> including removed<% } %><% if (table.q.length > 0) { %> matching &ldquo;<%= table.q %>&rdquo;<% } %><% if (table.page_count > 1) { %>, page <%= table.page %> of <%= table.page_count %><% } %>
     </span>
     <% if (table.page_count > 1) { %>
     <nav aria-label="Bookshelf pages">

@@ -82,6 +82,23 @@ exports.get = async function (id) {
     return user;
 };
 
+/**
+ * Turns the database's refusal of a second row for a DU ID into the answer
+ * the pre-check gives. The unique index on du_id (migration 20260921000003)
+ * is what actually keeps one row per person; the SELECT in create() only
+ * spares the common case a round trip to a failing INSERT. Two administrators
+ * adding the same DU ID in the same instant both pass that check, and the
+ * second INSERT then fails on the index - a 409 for them, not a 500.
+ * @param error thrown by the INSERT
+ * @returns {Error} a ConflictError for a duplicate key, otherwise the error as given
+ */
+function as_conflict(error) {
+
+    return error.code === 'ER_DUP_ENTRY'
+        ? new ConflictError('A user with this DU ID already exists.')
+        : error;
+}
+
 exports.create = async function (body) {
 
     const user = validate_profile(body);
@@ -93,7 +110,14 @@ exports.create = async function (body) {
         throw new ConflictError('A user with this DU ID already exists.');
     }
 
-    const [id] = await DB(USERS).insert(user);
+    let id;
+
+    try {
+        [id] = await DB(USERS).insert(user);
+    } catch (error) {
+        throw as_conflict(error);
+    }
+
     return exports.get(id);
 };
 
@@ -188,3 +212,4 @@ exports.set_active = async function (id, active) {
 exports._is_last_active_admin = is_last_active_admin;
 exports._validate_profile = validate_profile;
 exports._validate_du_id = validate_du_id;
+exports._as_conflict = as_conflict;

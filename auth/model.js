@@ -20,7 +20,8 @@ const DB = require('../config/db');
 const USERS = 'tbl_users';
 
 /**
- * Finds an active dashboard user by du_id
+ * Finds an active dashboard user by du_id. du_id is unique (migration
+ * 20260921000003), so first() is the row, not an arbitrary pick.
  * @param du_id
  * @returns {Promise<object|undefined>}
  */

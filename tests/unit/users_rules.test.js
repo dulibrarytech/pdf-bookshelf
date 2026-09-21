@@ -7,6 +7,7 @@ const CONTROLLER = require('../../users/controller');
 
 const last_admin = MODEL._is_last_active_admin;
 const self_demotion = CONTROLLER._is_self_demotion;
+const as_conflict = MODEL._as_conflict;
 
 test('last_active_admin: the sole active admin is protected', () => {
     assert.equal(last_admin(1, [1]), true);
@@ -45,4 +46,29 @@ test('self_demotion: demoting somebody else is not self-demotion', () => {
 
 test('self_demotion: tolerates a missing actor', () => {
     assert.equal(self_demotion(undefined, 1, 'staff'), false);
+});
+
+/*
+ * the race the unique index closes: two administrators add the same DU ID in
+ * the same instant, both pass create()'s pre-check, and the second INSERT
+ * fails on the index - which must read as the same refusal, not as a 500
+ */
+test('as_conflict: a duplicate-key failure becomes the "already exists" refusal', () => {
+
+    const error = new Error("Duplicate entry '871095226' for key 'idx_users_du_id'");
+    error.code = 'ER_DUP_ENTRY';
+
+    const result = as_conflict(error);
+    assert.equal(result.status, 409);
+    assert.equal(result.code, 'CONFLICT');
+    assert.equal(result.message, 'A user with this DU ID already exists.');
+});
+
+test('as_conflict: any other failure is passed through untouched', () => {
+
+    const error = new Error('Connection lost');
+    error.code = 'PROTOCOL_CONNECTION_LOST';
+
+    assert.equal(as_conflict(error), error);
+    assert.equal(as_conflict(new Error('plain')).status, undefined);
 });

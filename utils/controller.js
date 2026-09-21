@@ -32,31 +32,54 @@ function view_locals(req, extra = {}) {
     }, extra);
 }
 
-exports.default = function (req, res) {
-    res.status(200).send({
-        info: `${CONFIG.organization} - ${CONFIG.app_name} ${CONFIG.app_version}`
-    });
-};
-
 exports.get_utils_page = function (req, res) {
     res.render('dashboard-utils', view_locals(req, {active: 'utils', title: 'Utilities'}));
 };
 
 /**
- * POST /dashboard/utils/resync - reconciles storage/ with tbl_pdfs (fragment)
+ * POST /dashboard/utils/resync - starts a reconciliation in the background,
+ * or joins the one running, and answers with the progress fragment that
+ * polls for the report. The work used to run inside this request: no guard
+ * against two administrators starting it at once, and a runtime that grew
+ * with the corpus until it outlived the proxy's patience.
  */
-exports.resync = async function (req, res) {
+exports.resync = function (req, res) {
 
-    try {
+    const { job, joined } = MODEL.start(req.user.id);
 
-        const report = await MODEL.resync();
-        LOGGER.module().info(`resync by user ${req.user.id}: ${JSON.stringify({scanned: report.scanned, added: report.added.length, updated: report.updated.length, missing: report.missing.length})}`);
-        res.render('fragments/resync-report', view_locals(req, {report: report}));
-
-    } catch (error) {
-        LOGGER.module().error('ERROR: [/utils/controller (resync)] ' + error.message);
-        res.status(500).send('<div class="alert alert-danger mb-0">Re-sync failed: ' + 'see the server log for details.</div>');
+    if (joined) {
+        LOGGER.module().info(`resync: user ${req.user.id} joined the run started by user ${job.started_by}`);
     }
+
+    res.render('fragments/resync-running', view_locals(req, {job: job, joined: joined}));
+};
+
+/**
+ * GET /dashboard/utils/resync/status - the progress fragment polls this
+ * until the run finishes, when the report (or a failure notice) takes its
+ * place and the polling stops with it
+ */
+exports.resync_status = function (req, res) {
+
+    const job = MODEL.status();
+
+    if (job === null) {
+        /* a poll from before a restart: the run it was watching is gone */
+        res.render('fragments/alert', {message: 'The re-sync was interrupted by a server restart. Run it again.'});
+        return;
+    }
+
+    if (job.finished_at === null) {
+        res.render('fragments/resync-running', view_locals(req, {job: job, joined: false}));
+        return;
+    }
+
+    if (job.error !== null) {
+        res.render('fragments/alert', {message: 'Re-sync failed: see the server log for details.'});
+        return;
+    }
+
+    res.render('fragments/resync-report', view_locals(req, {report: job.report, took_ms: job.finished_at - job.started_at}));
 };
 
 exports.healthcheck = async function (req, res) {

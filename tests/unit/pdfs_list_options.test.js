@@ -10,6 +10,7 @@ const assert = require('node:assert/strict');
 const MODEL = require('../../pdfs/model');
 
 const normalize = MODEL._normalize_list_options;
+const like_pattern = MODEL._like_pattern;
 
 test('the sortable columns are accepted as given', () => {
     for (const sort of ['title', 'filename', 'file_size', 'hits', 'created']) {
@@ -68,6 +69,35 @@ test('the search term is trimmed, and non-strings become empty', () => {
     }
 });
 
+test('removed records are included only on an explicit "1"', () => {
+
+    assert.equal(normalize({removed: '1'}).removed, true);
+
+    /* query-string values are strings; anything else is the default view */
+    for (const value of ['0', 'true', 'yes', '', undefined, null, 1, ['1']]) {
+        assert.equal(normalize({removed: value}).removed, false, `removed ${JSON.stringify(value)}`);
+    }
+});
+
 test('an empty query object yields the documented defaults', () => {
-    assert.deepEqual(normalize(), {q: '', sort: 'created', dir: 'desc', page: 1});
+    assert.deepEqual(normalize(), {q: '', sort: 'created', dir: 'desc', page: 1, removed: false});
+});
+
+/* --- the search term reaches LIKE, whose wildcards must not be the user's to type --- */
+
+test('a plain term is wrapped for a contains match', () => {
+    assert.equal(like_pattern('thesis'), '%thesis%');
+});
+
+test('LIKE wildcards in the term are escaped, so they match themselves', () => {
+
+    /* the regression: "_" matched every record, "du_mrp" let the underscore stand for anything */
+    assert.equal(like_pattern('_'), '%\\_%');
+    assert.equal(like_pattern('du_mrp_2026'), '%du\\_mrp\\_2026%');
+    assert.equal(like_pattern('50%'), '%50\\%%');
+});
+
+test('the escape character itself is escaped', () => {
+    assert.equal(like_pattern('a\\b'), '%a\\\\b%');
+    assert.equal(like_pattern('\\%'), '%\\\\\\%%');
 });

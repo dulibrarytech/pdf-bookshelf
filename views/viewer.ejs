@@ -23,15 +23,20 @@ See https://github.com/adobe-type-tools/cmap-resources
 <!--
 This file is web/viewer.html from the pdf.js release vendored in
 public/libs/pdfjs, with only these changes: page title and <html> data
-attributes rendered by the server, asset URLs pointed at APP_PATH/static,
-the bundle's own CSP meta removed (config/express.js sends the app's CSP as
-a header), and pdf-viewer-config.js loaded ahead of viewer.mjs.
+attributes rendered by the server, asset URLs pointed at APP_PATH/static and
+keyed to the bundle's version (?v=, so an upgrade is not served from a
+browser's day-old cache), the bundle's own CSP meta removed (config/express.js
+sends the app's CSP as a header), and pdf-viewer-config.js loaded ahead of
+viewer.mjs.
 
-Regenerate it the same way after running scripts/vendor-pdfjs.js.
+Regenerate it the same way after running scripts/vendor-pdfjs.js; the viewer
+template test fails until the ?v= keys are carried over.
 -->
 <html dir="ltr" lang="en" mozdisallowselectionprint
       data-pdfjs-base="<%= app_path %>/static/libs/pdfjs"
-      data-pdf-url="<%= app_path %>/pdf/<%= uuid %>">
+      data-pdfjs-v="<%= pdfjs_v %>"
+      data-pdf-url="<%= app_path %>/pdf/<%= uuid %>"
+      data-login-url="<%= app_path %>/login">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
@@ -41,14 +46,14 @@ Regenerate it the same way after running scripts/vendor-pdfjs.js.
 
 <!-- This snippet is used in production (included from viewer.html) -->
 <link rel="resource" type="application/l10n" href="<%= app_path %>/static/libs/pdfjs/web/locale/locale.json" />
-<script src="<%= app_path %>/static/libs/pdfjs/build/pdf.mjs" type="module"></script>
+<script src="<%= app_path %>/static/libs/pdfjs/build/pdf.mjs?v=<%= pdfjs_v %>" type="module"></script>
 
-    <link rel="stylesheet" href="<%= app_path %>/static/libs/pdfjs/web/viewer.css" />
+    <link rel="stylesheet" href="<%= app_path %>/static/libs/pdfjs/web/viewer.css?v=<%= pdfjs_v %>" />
 
   <%/* must precede viewer.mjs: it registers the webviewerloaded listener
        that points the viewer at this app - see the file header */%>
   <script src="<%= app_path %>/static/assets/js/pdf-viewer-config.js?v=<%= asset_v %>" defer></script>
-  <script src="<%= app_path %>/static/libs/pdfjs/web/viewer.mjs" type="module"></script>
+  <script src="<%= app_path %>/static/libs/pdfjs/web/viewer.mjs?v=<%= pdfjs_v %>" type="module"></script>
   </head>
 
   <body tabindex="0">

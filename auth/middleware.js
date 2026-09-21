@@ -30,17 +30,41 @@ const CONFIG = require('../config/config');
 const JWT = require('../libs/jwt');
 const MODEL = require('./model');
 const LOGGER = require('../libs/log4');
+const { refuse, is_htmx } = require('../libs/refuse');
+const { same_origin } = require('../libs/origin');
+
+/* methods that read; anything else changes state and must come from our own page */
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 /**
- * True when the client expects a full HTML page (vs an HTMX fragment/API call)
+ * True when the client is a browser navigating - the one caller a redirect to
+ * sign-in helps. A page's own fetch() or XHR carries the same cookie but
+ * cannot follow that redirect: it ends at the identity provider, another
+ * origin, so the fetch dies as a CORS failure and pdf.js showed "an error
+ * occurred" for a session that expired while the viewer was open. Browsers
+ * mark a navigation with Sec-Fetch-Mode: navigate; a client without the
+ * header is told apart by whether it asked for HTML by name (a navigation's
+ * Accept lists text/html; fetch's default accepts anything).
+ * @param req
+ */
+function is_navigation(req) {
+
+    const mode = req.get('sec-fetch-mode');
+
+    if (mode !== undefined) {
+        return mode === 'navigate';
+    }
+
+    return /\btext\/html\b/.test(req.get('accept') || '');
+}
+
+/**
+ * True when a redirect to sign-in is the right answer: a browser navigating
+ * with GET, and not an htmx request (those get HX-Redirect instead)
  * @param req
  */
 function wants_html_redirect(req) {
-    return req.method === 'GET' && req.get('hx-request') === undefined && (req.accepts(['html', 'json']) === 'html');
-}
-
-function is_htmx(req) {
-    return req.get('hx-request') !== undefined;
+    return req.method === 'GET' && req.get('hx-request') === undefined && is_navigation(req);
 }
 
 function deny(req, res) {
@@ -65,37 +89,10 @@ function deny(req, res) {
     res.status(401).send({message: 'Unauthorized'});
 }
 
-/**
- * Answers a refusal in a shape the caller can actually use.
- *
- * These fire on requests that are usually HTMX fragment calls - a kebab-menu
- * action targeting `closest tr`. Rendering the full-page error template at
- * them put an entire <!doctype html> document inside a table row. A refusal
- * is not row content, so htmx gets no body at all: HX-Reswap none leaves the
- * page untouched, and the message rides an HX-Trigger event that app.js turns
- * into a toast, so the action still visibly fails instead of doing nothing.
- *
- * @param req
- * @param res
- * @param status
- * @param message shown to the user
+/*
+ * 403 and 500 answer through libs/refuse.js, in the caller's shape - the same
+ * helper the rate limiter uses, so every refusal in the app looks the same.
  */
-function refuse(req, res, status, message) {
-
-    if (is_htmx(req)) {
-        res.set('HX-Reswap', 'none');
-        res.set('HX-Trigger', JSON.stringify({'bookshelf:denied': {message: message, status: status}}));
-        res.status(status).end();
-        return;
-    }
-
-    if (req.accepts(['html', 'json']) === 'html') {
-        res.status(status).render('error', {message: message});
-        return;
-    }
-
-    res.status(status).send({message: message});
-}
 
 /*
  * The guards below are named functions carrying `tier`/`roles` metadata. That
@@ -151,6 +148,17 @@ exports.require_dashboard = function (...roles) {
 
             } catch {
                 deny(req, res);
+                return;
+            }
+
+            /*
+             * Every dashboard change must come from the dashboard: a second
+             * lock beside the cookie's SameSite=Lax, so the CSRF defence does
+             * not rest on one cookie attribute. Before the database lookup -
+             * a refused request costs nothing.
+             */
+            if (!SAFE_METHODS.has(req.method) && !same_origin(req)) {
+                refuse(req, res, 403, 'This request did not come from the PDF Bookshelf page, so it was not carried out.');
                 return;
             }
 

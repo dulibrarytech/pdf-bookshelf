@@ -7,8 +7,8 @@ Makes purchased PDFs available to SSO-authenticated DU community members.
 ```
 # prerequisites: Node >= 22, MariaDB with the pdf_bookshelf database
 cd pdf-bookshelf
-npm install
-npm run vendor        # copies Bootstrap/HTMX from node_modules into public/libs (self-hosted, CSP self-only)
+npm install           # its postinstall hook copies Bootstrap/HTMX from node_modules into
+                      # public/libs (self-hosted, CSP self-only); `npm run vendor` redoes it
 cp .env-example .env  # then fill in values (the app refuses to start if a
                       # required one is missing, and names every one it needs)
 npm run migrate       # applies knex migrations (safe over a database restored from the v1 dump)
@@ -16,10 +16,38 @@ npm test              # unit tests (node:test)
 npm run dev           # http://localhost:8005/bookshelf/dashboard/home
 ```
 
+## Deploying
+
+`npm ci` on the target installs the runtime dependencies - Bootstrap and htmx
+are among them, deliberately not dev dependencies - and its postinstall hook
+copies them into `public/libs`, which is not in git. If scripts are skipped
+(`npm ci --ignore-scripts`), run `npm run vendor` by hand. The app refuses to
+start while those files are missing, and says which.
+
+The app answers a few paths at the domain root as well as under `APP_PATH`:
+`/` (into sign-in), the legacy catalogue links `/viewer` and `/pdf/<name>`, and
+`/robots.txt` (disallow everything). nginx should pass those through. Every
+response also carries `X-Robots-Tag: noindex, nofollow`.
+
+`APP_PATH` itself (`/bookshelf`, with or without the slash) redirects into
+sign-in too; it used to answer a JSON line naming the app and its version to
+anyone. Point uptime checks at `APP_PATH/healthcheck`, which answers 200 with
+the database reachable and 503 otherwise.
+
+Every state-changing request (sign-out, and every dashboard action) must come
+from the app's own page, judged by the browser's `Sec-Fetch-Site` header or,
+for a browser without it, by `Origin` against the host the app was reached at.
+For that fallback nginx should pass the `Host` header through
+(`proxy_set_header Host $host`) or set `X-Forwarded-Host`.
+
 ## Migrations
 
 `npm run migrate` applies them and is safe over a database restored from the v1
-dump.
+dump. Every step checks what is already in place, so a run that failed mid-way
+(MySQL commits DDL as it goes and cannot roll it back) is finished by simply
+running it again. `20260921000003` adds the unique index on `tbl_users.du_id` and refuses,
+naming the DU IDs, if the table already holds duplicates - decide which row to
+keep for each, delete the others, and run it again.
 
 **`npm run migrate:rollback` refuses by default.** Rolling back the v2 upgrades
 drops `tbl_pdfs.uuid`, and those identifiers were minted when the migration ran
@@ -54,7 +82,11 @@ hand-edit files under `public/libs/pdfjs`: v1 and v2.0 did, and that is why a
 
 After upgrading, diff the release's `web/viewer.html` against `views/viewer.ejs`
 and carry over any new markup - the viewer only wires up element IDs that exist,
-so new toolbar features stay dark until their markup is present.
+so new toolbar features stay dark until their markup is present. Keep the
+`?v=<%= pdfjs_v %>` keys on the bundle's script and stylesheet URLs (the viewer
+template test fails without them): the app reads the bundle's version at boot
+and keys those URLs to it, so an upgrade reaches browsers at once instead of
+after the day-long static cache ages out. Nothing needs bumping by hand.
 ## Maintainers
 
 @freyesdulib

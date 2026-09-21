@@ -122,11 +122,8 @@ async function main() {
 
     FS.rmSync(work, {recursive: true, force: true});
 
-    const version = /pdfjsVersion = (\S+)/.exec(
-        FS.readFileSync(PATH.join(TARGET, 'web/viewer.mjs'), 'utf8').slice(0, 4096)
-    );
-
-    console.log(`vendored pdf.js ${version === null ? '(unknown version)' : version[1]} into public/libs/pdfjs`);
+    /* the same reader the app keys the viewer's URLs with at boot */
+    console.log(`vendored pdf.js ${require('../libs/pdfjs').version(TARGET)} into public/libs/pdfjs`);
 }
 
 main();

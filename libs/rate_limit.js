@@ -20,17 +20,34 @@
  * Minimal fixed-window in-memory rate limiter (single-instance app).
  * Applied to the auth callback and upload endpoints - v1 had no limits
  * anywhere (see the exhibits rate-limit review for the pattern).
+ *
+ * Keyed by req.ip, which is only as right as the app's trust-proxy setting
+ * (config/express.js): trust the wrong hop and every user behind nginx shares
+ * one bucket. And DU users share addresses anyway - campus NAT and the VPN put
+ * a whole class behind one - so a ceiling has to be sized for a room signing
+ * in at once, not for one person. This is abuse throttling, not a security
+ * control.
+ *
+ * A refusal answers in the caller's shape (libs/refuse.js): an htmx action
+ * gets headers and a toast, a browser gets the error page - with a way
+ * forward when the caller supplies one - and anything else gets JSON. It used
+ * to be JSON for everyone, which put a bare {"message":...} on screen as the
+ * whole page after a student had already signed in at the identity provider.
  */
+
+const { refuse } = require('./refuse');
 
 /**
  * Builds a rate-limiting middleware
- * @param options {window_ms, max, message}
+ * @param options {window_ms, max, message, retry} - retry is an optional
+ *   (req) => href, offered on the full-page refusal as "Try again"
  */
 module.exports = function (options = {}) {
 
     const window_ms = options.window_ms || 60000;
     const max = options.max || 30;
     const message = options.message || 'Too many requests. Try again shortly.';
+    const retry = typeof options.retry === 'function' ? options.retry : null;
 
     let window_start = Date.now();
     let counts = new Map();
@@ -49,7 +66,10 @@ module.exports = function (options = {}) {
         counts.set(key, count);
 
         if (count > max) {
-            res.status(429).send({message: message});
+
+            /* seconds until this window resets - never 0, or a client would retry at once */
+            res.set('Retry-After', String(Math.max(1, Math.ceil((window_start + window_ms - now) / 1000))));
+            refuse(req, res, 429, message, retry === null ? undefined : {href: retry(req), label: 'Try again'});
             return;
         }
 

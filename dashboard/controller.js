@@ -34,6 +34,19 @@ function view_locals(req, extra = {}) {
     }, extra);
 }
 
+/**
+ * Answers with a one-cell message row for the bookshelf table's fragment
+ * endpoints. The table has five columns - title, size, requests, added,
+ * actions. Rendered through a view so the text is escaped on the way out:
+ * controllers build no markup from strings (a guard test keeps it so).
+ * @param res
+ * @param status
+ * @param message
+ */
+function message_row(res, status, message) {
+    res.status(status).render('fragments/message-row', {colspan: 5, message: message});
+}
+
 exports.get_dashboard_home = async function (req, res) {
 
     try {
@@ -61,7 +74,7 @@ exports.get_pdf_table = async function (req, res) {
 
     } catch (error) {
         LOGGER.module().error('ERROR: [/dashboard/controller (get_pdf_table)] ' + error.message);
-        res.status(500).send('<div class="alert alert-danger">Unable to load the bookshelf table.</div>');
+        res.status(500).render('fragments/alert', {message: 'Unable to load the bookshelf table.'});
     }
 };
 
@@ -75,7 +88,7 @@ exports.get_pdf_row = async function (req, res) {
         const record = await PDFS.get_by_uuid(req.params.uuid);
 
         if (record === undefined) {
-            res.status(404).send('<tr><td colspan="6">Record not found.</td></tr>');
+            message_row(res, 404, 'Record not found.');
             return;
         }
 
@@ -83,7 +96,7 @@ exports.get_pdf_row = async function (req, res) {
 
     } catch (error) {
         LOGGER.module().error('ERROR: [/dashboard/controller (get_pdf_row)] ' + error.message);
-        res.status(500).send('<tr><td colspan="6">Unable to load the row.</td></tr>');
+        message_row(res, 500, 'Unable to load the row.');
     }
 };
 
@@ -97,7 +110,7 @@ exports.get_pdf_edit_row = async function (req, res) {
         const record = await PDFS.get_by_uuid(req.params.uuid);
 
         if (record === undefined) {
-            res.status(404).send('<tr><td colspan="6">Record not found.</td></tr>');
+            message_row(res, 404, 'Record not found.');
             return;
         }
 
@@ -105,7 +118,7 @@ exports.get_pdf_edit_row = async function (req, res) {
 
     } catch (error) {
         LOGGER.module().error('ERROR: [/dashboard/controller (get_pdf_edit_row)] ' + error.message);
-        res.status(500).send('<tr><td colspan="6">Unable to load the edit form.</td></tr>');
+        message_row(res, 500, 'Unable to load the edit form.');
     }
 };
 
@@ -119,14 +132,14 @@ exports.update_pdf = async function (req, res) {
         const title = typeof req.body.title === 'string' ? req.body.title.trim().substring(0, 500) : '';
 
         if (title.length === 0) {
-            res.status(400).send('<tr><td colspan="6">Title is required.</td></tr>');
+            message_row(res, 400, 'Title is required.');
             return;
         }
 
         const updated = await PDFS.update_title(req.params.uuid, title);
 
         if (updated === 0) {
-            res.status(404).send('<tr><td colspan="6">Record not found.</td></tr>');
+            message_row(res, 404, 'Record not found.');
             return;
         }
 
@@ -135,23 +148,67 @@ exports.update_pdf = async function (req, res) {
 
     } catch (error) {
         LOGGER.module().error('ERROR: [/dashboard/controller (update_pdf)] ' + error.message);
-        res.status(500).send('<tr><td colspan="6">Unable to save changes.</td></tr>');
+        message_row(res, 500, 'Unable to save changes.');
     }
 };
 
 /**
  * DELETE /dashboard/pdfs/:uuid - soft delete (admin)
+ *
+ * The record and its file both stay so it can be restored. With "Show
+ * removed" on (the button includes the filter, and htmx puts DELETE
+ * parameters in the query string) the row re-renders as removed, Restore
+ * and all; otherwise it disappears from the list.
  */
 exports.deactivate_pdf = async function (req, res) {
 
     try {
 
+        const record = await PDFS.get_by_uuid(req.params.uuid);
+
+        if (record === undefined) {
+            message_row(res, 404, 'Record not found.');
+            return;
+        }
+
         await PDFS.deactivate(req.params.uuid);
+
+        if (req.query.removed === '1') {
+            res.render('fragments/pdf-row', view_locals(req, {row: Object.assign({}, record, {is_active: 0})}));
+            return;
+        }
+
         /* row disappears; HTMX swaps in nothing */
         res.status(200).send('');
 
     } catch (error) {
         LOGGER.module().error('ERROR: [/dashboard/controller (deactivate_pdf)] ' + error.message);
-        res.status(500).send('<tr><td colspan="6">Unable to remove the record.</td></tr>');
+        message_row(res, 500, 'Unable to remove the record.');
+    }
+};
+
+/**
+ * POST /dashboard/pdfs/:uuid/restore - undoes a Remove (admin), returns the
+ * row as an active record again. Restoring an already-active record is a
+ * no-op that still renders it, so a stale page cannot break anything.
+ */
+exports.restore_pdf = async function (req, res) {
+
+    try {
+
+        await PDFS.reactivate(req.params.uuid);
+
+        const record = await PDFS.get_by_uuid(req.params.uuid);
+
+        if (record === undefined) {
+            message_row(res, 404, 'Record not found.');
+            return;
+        }
+
+        res.render('fragments/pdf-row', view_locals(req, {row: record}));
+
+    } catch (error) {
+        LOGGER.module().error('ERROR: [/dashboard/controller (restore_pdf)] ' + error.message);
+        message_row(res, 500, 'Unable to restore the record.');
     }
 };

@@ -16,7 +16,44 @@
 
 'use strict';
 
+function is_set(value) {
+    return value !== undefined && String(value).trim().length > 0;
+}
+
+/*
+ * Env values are strings; Express wants a boolean for "true"/"false", a hop
+ * count for a bare integer, and otherwise a comma-separated address list
+ * (loopback, linklocal, uniquelocal, an IP, or a CIDR range). Unset means
+ * loopback, the documented topology: nginx on this host. Checked at boot by
+ * config/validate.js, because a bad value makes app.set() throw.
+ */
+function trust_proxy_setting(raw) {
+
+    const value = is_set(raw) ? String(raw).trim() : '';
+
+    if (value === '') {
+        return 'loopback';
+    }
+
+    if (value === 'true' || value === 'false') {
+        return value === 'true';
+    }
+
+    if (/^\d+$/.test(value)) {
+        return parseInt(value, 10);
+    }
+
+    return value;
+}
+
 module.exports = Object.freeze({
+    /*
+     * "production" marks the session cookie Secure, compresses responses and
+     * caches compiled templates. The entrypoint defaults it to development
+     * before this file loads; config/validate.js warns when a deployed host
+     * still carries that.
+     */
+    node_env: process.env.NODE_ENV || 'development',
     app_name: process.env.APP_NAME || 'PDF Bookshelf @ DU',
     /*
      * startup timestamp appended to static asset URLs (?v=) so browsers pick
@@ -28,7 +65,6 @@ module.exports = Object.freeze({
     app_host: process.env.APP_HOST || 'localhost',
     app_port: process.env.APP_PORT || 8005,
     app_path: process.env.APP_PATH || '/bookshelf',
-    host: process.env.HOST || 'http://localhost:8005',
     token_secret: process.env.TOKEN_SECRET,
     token_algo: process.env.TOKEN_ALGO || 'HS512',
     token_expires: process.env.TOKEN_EXPIRES || '12h',
@@ -43,6 +79,20 @@ module.exports = Object.freeze({
     sso_max_skew_seconds: parseInt(process.env.SSO_MAX_SKEW_SECONDS, 10) || 300,
     sso_hmac_secret: process.env.SSO_HMAC_SECRET,
     sso_hmac_secret_next: process.env.SSO_HMAC_SECRET_NEXT,
+    /*
+     * Sign-in callbacks accepted per client address per minute. DU users
+     * arrive behind campus NAT and VPN egress addresses, so this has to
+     * absorb a whole class signing in at once; it is abuse throttling, not a
+     * security control. Kept as given (not coerced to a default) so that a
+     * typo is refused at boot rather than silently becoming 300.
+     */
+    sso_rate_limit_per_minute: is_set(process.env.SSO_RATE_LIMIT_PER_MINUTE) ? Number(process.env.SSO_RATE_LIMIT_PER_MINUTE) : 300,
+    /*
+     * Express "trust proxy": which upstream addresses may set X-Forwarded-For.
+     * req.ip - and with it every per-address rate limit - is only as right as
+     * this. See trust_proxy_setting() above for the accepted forms.
+     */
+    trust_proxy: trust_proxy_setting(process.env.TRUST_PROXY),
     db_host: process.env.DB_HOST || '127.0.0.1',
     db_port: process.env.DB_PORT || 3306,
     db_user: process.env.DB_USER,

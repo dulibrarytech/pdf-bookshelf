@@ -17,9 +17,19 @@
 'use strict';
 
 /*
- * Typed error classes. Controllers/services throw these; the central
- * error handler in config/express.js maps them to HTTP responses.
+ * Typed error classes, and the mapping the central handler applies.
+ *
+ * A controller answers its own refusals - a 400 row, a 409 alert - in the
+ * shape its caller expects, and these classes carry the status and code it
+ * needs to do that. Whatever escapes to the central handler in
+ * config/express.js is mapped by describe_error(): one of these keeps its
+ * status and message; a client error from Express's own parsers (a body
+ * over the limit, malformed JSON) keeps its status, and its message when the
+ * parser marked it as meant to be shown; anything else is a 500 with a
+ * generic line - the real message goes to the log, never to the screen.
  */
+
+const HTTP = require('node:http');
 
 class AppError extends Error {
 
@@ -67,11 +77,36 @@ class ConflictError extends AppError {
     }
 }
 
+/**
+ * How the central handler should answer an error it was handed.
+ * @param error anything thrown in a route or passed to next()
+ * @returns {{status: number, message: string, expected: boolean}} expected
+ *   marks a client error, worth a warning in the log rather than an error
+ */
+function describe_error(error) {
+
+    const raw = error === null || typeof error !== 'object'
+        ? undefined
+        : (Number.isInteger(error.status) ? error.status : error.statusCode);
+    const status = Number.isInteger(raw) && raw >= 400 && raw <= 599 ? raw : 500;
+
+    if (status >= 500) {
+        return {status: status, message: 'An unexpected error occurred.', expected: false};
+    }
+
+    /* our own refusals, and what http-errors marks `expose` (Express's parsers do, for 4xx) */
+    const shown = error instanceof AppError || error.expose === true;
+    const own = shown && typeof error.message === 'string' && error.message.length > 0;
+
+    return {status: status, message: own ? error.message : (HTTP.STATUS_CODES[status] || 'Request refused.'), expected: true};
+}
+
 module.exports = {
     AppError,
     ValidationError,
     UnauthorizedError,
     ForbiddenError,
     NotFoundError,
-    ConflictError
+    ConflictError,
+    describe_error
 };

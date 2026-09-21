@@ -37,4 +37,8 @@ module.exports = function (app) {
     app.route(CONFIG.app_path + '/dashboard/pdfs/:uuid')
         .put(MIDDLEWARE.require_dashboard(), CONTROLLER.update_pdf)
         .delete(MIDDLEWARE.require_dashboard('admin'), CONTROLLER.deactivate_pdf);
+
+    /* undoes a Remove; a row is only offered it under "Show removed" */
+    app.route(CONFIG.app_path + '/dashboard/pdfs/:uuid/restore')
+        .post(MIDDLEWARE.require_dashboard('admin'), CONTROLLER.restore_pdf);
 };

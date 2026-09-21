@@ -12,8 +12,12 @@
             <div>
                 <p class="text-body-secondary">
                     Reconciles the <code>storage/</code> directory with the bookshelf database:
-                    files without a record are added, changed files are re-measured, and records
-                    whose file is missing are reported. Safe to run repeatedly.
+                    files without a record are added, changed files are re-measured, records
+                    whose file is missing are reported, and files the bookshelf could not serve
+                    (an extension that is not lowercase <code>.pdf</code>, or a name that differs
+                    from an existing record only in capitalisation) are listed with the fix.
+                    It runs in the background - this page follows its progress and then shows the
+                    report - and only one runs at a time. Safe to run repeatedly.
                 </p>
                 <button type="button" class="btn btn-primary"
                         hx-post="<%= app_path %>/dashboard/utils/resync"

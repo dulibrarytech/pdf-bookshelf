@@ -22,19 +22,27 @@ const MIDDLEWARE = require('../auth/middleware');
 
 module.exports = function (app) {
 
-    app.route(CONFIG.app_path + '/')
-        .get(CONTROLLER.default);
-
     app.route(CONFIG.app_path + '/dashboard/utils')
         .get(MIDDLEWARE.require_dashboard('admin'), CONTROLLER.get_utils_page);
 
     app.route(CONFIG.app_path + '/dashboard/utils/resync')
         .post(MIDDLEWARE.require_dashboard('admin'), CONTROLLER.resync);
 
+    app.route(CONFIG.app_path + '/dashboard/utils/resync/status')
+        .get(MIDDLEWARE.require_dashboard('admin'), CONTROLLER.resync_status);
+
     app.route(CONFIG.app_path + '/healthcheck')
         .get(CONTROLLER.healthcheck);
 
-    app.get(CONFIG.app_path + '/robots.txt', function (req, res) {
+    /*
+     * At the domain root, the only place a crawler reads it (it used to sit
+     * under APP_PATH, where nothing ever asked for it). The app already owns
+     * root-level paths on its host - the bare hostname and the legacy
+     * catalogue links - so nginx passes this one through as well. Every
+     * response also carries X-Robots-Tag (config/express.js), which holds
+     * even where a proxy does not.
+     */
+    app.get('/robots.txt', function (req, res) {
         res.type('text/plain');
         res.send('User-agent: *\nDisallow: /');
     });

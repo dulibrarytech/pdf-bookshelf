@@ -22,6 +22,11 @@
  *   2. per file: sha256, sanitized final name, DB uniqueness check
  *   3. publish into storage/ exclusively + insert row; a name already taken
  *      on disk or in the database is reported per file and never overwritten
+ *
+ * One deliberate exception to "never": a name that belongs to a REMOVED
+ * record whose file is gone from storage is revived - the upload becomes that
+ * record's file again, so its uuid and every catalogued link keep working
+ * instead of the name being retired forever.
  */
 
 const FS = require('node:fs');
@@ -32,10 +37,16 @@ const DB = require('../config/db');
 const FORMAT = require('../libs/format');
 const LOGGER = require('../libs/log4');
 const STORAGE = require('../libs/storage');
+const { ValidationError, ConflictError } = require('../libs/errors');
 
 const PDFS = 'tbl_pdfs';
+const EXTENSION = '.pdf';
 /* %PDF- */
 const PDF_MAGIC = Buffer.from('%PDF-');
+/* what a filesystem allows for one name, in bytes - ext4 and most others */
+const NAME_MAX_BYTES = 255;
+/* tbl_pdfs.title is VARCHAR(500); the dashboard's title editor caps at the same */
+const TITLE_MAX = 500;
 
 function view_locals(req, extra = {}) {
 
@@ -60,6 +71,60 @@ function sanitize_filename(original) {
         .replace(/[/\\?%*:|"<>]/g, '-')
         .replace(/\.pdf$/i, '')
         .toLowerCase();
+}
+
+/**
+ * Why a sanitized storage key cannot be used, or null when it can. Measured
+ * in bytes, as the filesystem does: a name of 200 accented characters is 400
+ * bytes of UTF-8, which is ENAMETOOLONG on Linux however few characters it
+ * has - the old check counted characters and let it through.
+ * @param filename the sanitized key, without the extension
+ * @returns {string|null} a message for the upload results, or null
+ */
+function filename_problem(filename) {
+
+    if (filename.length === 0) {
+        return 'Invalid filename.';
+    }
+
+    const bytes = Buffer.byteLength(filename + EXTENSION, 'utf8');
+
+    if (bytes > NAME_MAX_BYTES) {
+        return `Filename is too long: ${bytes} bytes including "${EXTENSION}", and a file name can be at most ${NAME_MAX_BYTES}. Shorten it and upload again.`;
+    }
+
+    return null;
+}
+
+/**
+ * The display title an upload starts with: the original name minus its
+ * extension, trimmed and capped to what the column holds - the shape the
+ * dashboard's title editor produces. Before this the untrimmed, uncapped
+ * name went straight to the INSERT, which a long name failed with a raw
+ * database message on screen after the file had been published and
+ * unpublished again. Falls back to the storage key when nothing is left.
+ * @param original the name as uploaded
+ * @param filename the sanitized storage key
+ */
+function derive_title(original, filename) {
+
+    const title = original.replace(/\.pdf$/i, '').trim().substring(0, TITLE_MAX);
+
+    return title.length > 0 ? title : filename;
+}
+
+/**
+ * What the results list says about a failed file. A refusal of ours carries
+ * a status and is shown as it is; anything else - a database or filesystem
+ * failure - names paths and drivers, not anything a staff member can act on,
+ * so it is replaced by a generic line (the caller logs the real one).
+ * @param error
+ */
+function result_message(error) {
+
+    return error.status === undefined
+        ? 'Upload failed for this file. The server log has the details.'
+        : error.message;
 }
 
 function sha256_file(path) {
@@ -109,23 +174,25 @@ exports.upload = async function (req, res) {
         /* multer decodes originalname as latin1; recover utf8 titles */
         const original = Buffer.from(file.originalname, 'latin1').toString('utf8');
         const filename = sanitize_filename(original);
-        const destination = PATH.join(PATH.resolve(CONFIG.storage_path), filename + '.pdf');
+        const destination = PATH.join(PATH.resolve(CONFIG.storage_path), filename + EXTENSION);
         let published = false;
 
         try {
 
-            if (filename.length === 0 || filename.length > 250) {
-                throw new Error('Invalid filename.');
+            const problem = filename_problem(filename);
+
+            if (problem !== null) {
+                throw new ValidationError(problem);
             }
 
             if (!await is_pdf(file.path)) {
-                throw new Error('Not a PDF file.');
+                throw new ValidationError('Not a PDF file.');
             }
 
-            const existing = await DB(PDFS).select('id').where({filename: filename}).first();
+            const existing = await DB(PDFS).select('id', 'is_active').where({filename: filename}).first();
 
-            if (existing !== undefined) {
-                throw new Error('A PDF with this filename is already on the bookshelf.');
+            if (existing !== undefined && Number(existing.is_active) === 1) {
+                throw new ConflictError('A PDF with this filename is already on the bookshelf.');
             }
 
             const sha256 = await sha256_file(file.path);
@@ -141,7 +208,9 @@ exports.upload = async function (req, res) {
             } catch (error) {
 
                 if (error.code === 'EEXIST') {
-                    throw new Error('A file with this name is already in storage. If it is not on the bookshelf, run Utilities → Re-sync.');
+                    throw new ConflictError(existing !== undefined
+                        ? 'A PDF with this filename was removed from the bookshelf and its file is still in storage. Restore it from Bookshelf → Show removed instead of uploading it again.'
+                        : 'A file with this name is already in storage. If it is not on the bookshelf, run Utilities → Re-sync.');
                 }
 
                 throw error;
@@ -149,16 +218,41 @@ exports.upload = async function (req, res) {
 
             published = true;
 
-            await DB(PDFS).insert({
-                uuid: CRYPTO.randomUUID(),
-                filename: filename,
-                title: original.replace(/\.pdf$/i, ''),
-                file_size: file.size,
-                sha256: sha256,
-                uploaded_by: req.user.id
-            });
+            const title = derive_title(original, filename);
 
-            results.push({name: original, size: file.size, saved: true, message: 'Saved.'});
+            if (existing !== undefined) {
+
+                /*
+                 * A removed record whose file is gone: this upload puts the
+                 * record back rather than creating a second one, so its uuid -
+                 * and every catalogued link to it - keeps working. The
+                 * filename is written too because the database matched it
+                 * case-insensitively and delivery does not.
+                 */
+                await DB(PDFS).where({id: existing.id}).update({
+                    is_active: 1,
+                    filename: filename,
+                    title: title,
+                    file_size: file.size,
+                    sha256: sha256,
+                    uploaded_by: req.user.id
+                });
+
+                results.push({name: original, size: file.size, saved: true, message: 'Saved. This filename belonged to a removed PDF; that record is back on the bookshelf with this file.'});
+
+            } else {
+
+                await DB(PDFS).insert({
+                    uuid: CRYPTO.randomUUID(),
+                    filename: filename,
+                    title: title,
+                    file_size: file.size,
+                    sha256: sha256,
+                    uploaded_by: req.user.id
+                });
+
+                results.push({name: original, size: file.size, saved: true, message: 'Saved.'});
+            }
 
         } catch (error) {
 
@@ -167,7 +261,11 @@ exports.upload = async function (req, res) {
                 await FS.promises.unlink(destination).catch(function () {});
             }
 
-            results.push({name: original, size: file.size, saved: false, message: error.message});
+            if (error.status === undefined) {
+                LOGGER.module().error(`ERROR: [/uploads/controller (upload)] ${original}: ${error.message}`);
+            }
+
+            results.push({name: original, size: file.size, saved: false, message: result_message(error)});
             FS.promises.unlink(file.path).catch(function () {});
         }
     }
@@ -204,3 +302,6 @@ exports.upload_error = function (error, req, res, _next) {
 /* exported for tests */
 exports._sanitize_filename = sanitize_filename;
 exports._is_pdf = is_pdf;
+exports._filename_problem = filename_problem;
+exports._derive_title = derive_title;
+exports._result_message = result_message;

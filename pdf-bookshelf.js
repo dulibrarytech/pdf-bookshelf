@@ -30,9 +30,8 @@ const LOGGER = require('./libs/log4');
  */
 require('./config/validate').enforce(CONFIG, LOGGER.module());
 
+/* logs "running at ..." once the port is actually bound, or one line and exit 1 if it cannot be */
 const express = require('./config/express');
 const app = express();
-
-LOGGER.module().info(`${CONFIG.app_name} ${CONFIG.app_version} running at http://${CONFIG.app_host}:${CONFIG.app_port}${CONFIG.app_path} in ${process.env.NODE_ENV} mode.`);
 
 module.exports = app;

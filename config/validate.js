@@ -38,12 +38,26 @@
  */
 
 const FS = require('node:fs');
+const NET = require('node:net');
 const PATH = require('node:path');
+const JWT = require('jsonwebtoken');
+/* required for its list only; the copy runs when the script is invoked directly */
+const { ASSETS } = require('../scripts/vendor-assets');
+
+const ROOT = PATH.join(__dirname, '..');
 
 /* the secret is a shared string, so only HMAC algorithms can use it */
 const TOKEN_ALGOS = ['HS256', 'HS384', 'HS512'];
 /* 256 bits, the usual floor for an HMAC signing key */
 const MIN_SECRET_LENGTH = 32;
+/* the named address groups Express's trust-proxy setting understands */
+const TRUST_KEYWORDS = ['loopback', 'linklocal', 'uniquelocal'];
+/* names for this machine - a deployment reachable by these is not one */
+const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '::1', '0.0.0.0'];
+/* a session shorter than this cannot outlast the sign-in redirect */
+const MIN_SESSION_SECONDS = 60;
+/* beyond this, a stateless token outlives any reason to keep honouring it */
+const LONG_SESSION_SECONDS = 7 * 24 * 3600;
 
 function is_blank(value) {
     return value === undefined || value === null || String(value).trim().length === 0;
@@ -58,15 +72,120 @@ function is_directory(path) {
     }
 }
 
+function is_file(path) {
+
+    try {
+        return FS.statSync(path).isFile();
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * True when a host name means this machine (loopback, or a *.localhost name)
+ * @param name a hostname, possibly bracketed IPv6
+ */
+function is_this_machine(name) {
+
+    const host = String(name === undefined || name === null ? '' : name).trim().toLowerCase().replace(/^\[|\]$/g, '');
+
+    return host.length === 0 || LOOPBACK_HOSTS.includes(host) || host.endsWith('.localhost');
+}
+
+/**
+ * What says this configuration belongs to a deployed host, or null when
+ * nothing does: the identity provider is told to post sign-ins to another
+ * machine, or APP_HOST names one.
+ * @param config
+ */
+function deployed_sign(config) {
+
+    try {
+        const host = new URL(config.sso_response_url).hostname;
+
+        if (!is_this_machine(host)) {
+            return `SSO_RESPONSE_URL sends sign-ins to ${host}`;
+        }
+    } catch {
+        /* unset or not a URL - nothing to infer from it */
+    }
+
+    if (!is_this_machine(config.app_host)) {
+        return `APP_HOST is ${config.app_host}`;
+    }
+
+    return null;
+}
+
+/**
+ * How long a session signed with this TOKEN_EXPIRES lasts, in seconds -
+ * measured by signing a throwaway token with the same library, so the verdict
+ * is jsonwebtoken's own rather than a re-implementation of its parser.
+ * @param expires config.token_expires
+ * @returns {number|undefined} undefined when jsonwebtoken cannot use the value
+ */
+function session_seconds(expires) {
+
+    try {
+        const decoded = JWT.decode(JWT.sign({}, 'probe', {algorithm: 'HS256', expiresIn: expires}));
+        return typeof decoded.exp === 'number' ? decoded.exp - decoded.iat : undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+/**
+ * True when Express would accept the value as its trust-proxy setting: a
+ * boolean, a hop count, or a comma-separated list of keywords, IP addresses
+ * and CIDR ranges. Anything else makes app.set() throw a bare stack trace at
+ * boot, which is the failure this replaces with a named message.
+ * @param value config.trust_proxy
+ */
+function valid_trust_proxy(value) {
+
+    if (typeof value === 'boolean') {
+        return true;
+    }
+
+    if (typeof value === 'number') {
+        return Number.isInteger(value) && value >= 0;
+    }
+
+    if (typeof value !== 'string' || value.trim().length === 0) {
+        return false;
+    }
+
+    return value.split(',').map((token) => token.trim()).every(function (token) {
+
+        if (TRUST_KEYWORDS.includes(token)) {
+            return true;
+        }
+
+        const [address, length, ...rest] = token.split('/');
+        const family = NET.isIP(address);
+
+        if (family === 0 || rest.length > 0) {
+            return false;
+        }
+
+        if (length === undefined) {
+            return true;
+        }
+
+        return /^\d+$/.test(length) && Number(length) <= (family === 4 ? 32 : 128);
+    });
+}
+
 /**
  * Reports what is wrong with a configuration.
- * Pure apart from the injected directory probe, so the rules are testable
+ * Pure apart from the injected filesystem probes, so the rules are testable
  * without touching the filesystem or booting anything.
  * @param config the CONFIG object
  * @param directory_exists (path) => boolean
+ * @param file_exists (path) => boolean
  * @returns {{fatal: string[], warnings: string[]}}
  */
-exports.inspect = function (config, directory_exists = is_directory) {
+exports.inspect = function (config, directory_exists = is_directory, file_exists = is_file) {
 
     const fatal = [];
     const warnings = [];
@@ -79,6 +198,25 @@ exports.inspect = function (config, directory_exists = is_directory) {
 
     if (!TOKEN_ALGOS.includes(config.token_algo)) {
         fatal.push(`TOKEN_ALGO "${config.token_algo}" is not supported. Use one of: ${TOKEN_ALGOS.join(', ')}.`);
+    }
+
+    /*
+     * A session length jsonwebtoken cannot use fails every sign-in with a
+     * generic error - the same silent failure TOKEN_SECRET used to have. The
+     * sharp edge is a bare number: jsonwebtoken reads "3600" as milliseconds,
+     * a three-second session, which is a sign-in loop.
+     */
+    const expires = config.token_expires;
+    const seconds = session_seconds(expires);
+
+    if (seconds === undefined) {
+        fatal.push(`TOKEN_EXPIRES "${expires}" is not a timespan jsonwebtoken understands. Use a number with a unit, e.g. 12h, 30m or 7d.`);
+    } else if (typeof expires === 'string' && /^\s*\d+\s*$/.test(expires)) {
+        fatal.push(`TOKEN_EXPIRES "${expires}" has no unit, and jsonwebtoken reads a bare number as milliseconds - a ${seconds}-second session. Write "${expires.trim()}s" for seconds, or e.g. 12h.`);
+    } else if (seconds < MIN_SESSION_SECONDS) {
+        fatal.push(`TOKEN_EXPIRES "${expires}" is ${seconds} seconds; a session that short cannot outlast the sign-in redirect. Use at least 1m.`);
+    } else if (seconds > LONG_SESSION_SECONDS) {
+        warnings.push(`TOKEN_EXPIRES "${expires}" is ${Math.round(seconds / 86400)} days. Sessions are stateless, so a token stays valid that long even after sign-out; 12h is the usual value.`);
     }
 
     if (is_blank(config.db_user)) {
@@ -100,6 +238,22 @@ exports.inspect = function (config, directory_exists = is_directory) {
         const where = resolved === config.storage_path ? '' : ` (resolved to ${resolved})`;
 
         fatal.push(`STORAGE_PATH "${config.storage_path}"${where} is not a directory. Every PDF would 404.`);
+    }
+
+    /*
+     * The dashboard's own CSS and JS are copied from node_modules into
+     * public/libs by scripts/vendor-assets.js - npm's postinstall hook, or
+     * `npm run vendor` by hand. public/libs is not in git, so a checkout where
+     * that step was skipped (a deploy with --ignore-scripts, or a copy of the
+     * tree without it) would serve the dashboard unstyled and inert, with
+     * nothing naming the cause. Source maps are not load-bearing.
+     */
+    const missing_assets = ASSETS
+        .map(([, destination]) => destination)
+        .filter((destination) => !destination.endsWith('.map') && !file_exists(PATH.join(ROOT, destination)));
+
+    if (missing_assets.length > 0) {
+        fatal.push(`Vendored client assets are missing: ${missing_assets.join(', ')}. Run "npm run vendor" - npm install and npm ci do it automatically unless scripts were skipped.`);
     }
 
     /*
@@ -133,6 +287,22 @@ exports.inspect = function (config, directory_exists = is_directory) {
     }
 
     /*
+     * The sign-in limiter is keyed by client address, and DU users arrive
+     * behind campus NAT and VPN egress addresses, so it must absorb a whole
+     * class at once. An unusable value would quietly become "refuse everyone"
+     * or "refuse nobody"; refuse to start instead.
+     */
+    const limit = config.sso_rate_limit_per_minute;
+
+    if (!Number.isInteger(limit) || limit < 1) {
+        fatal.push(`SSO_RATE_LIMIT_PER_MINUTE "${limit}" must be a whole number of sign-in callbacks per minute, at least 1.`);
+    }
+
+    if (!valid_trust_proxy(config.trust_proxy)) {
+        fatal.push(`TRUST_PROXY "${config.trust_proxy}" is not usable. Use true, false, a hop count, or a comma-separated list of loopback, linklocal, uniquelocal, IP addresses or CIDR ranges.`);
+    }
+
+    /*
      * Say out loud which SSO verification layers are inactive.
      *
      * Both are built and tested but default off, because the DU authproxy does
@@ -149,8 +319,19 @@ exports.inspect = function (config, directory_exists = is_directory) {
             : `SSO callbacks are NOT signature-verified (SSO_REQUIRE_HMAC is off). Identity is taken from the callback body, with the SSO_HOST match against "${config.sso_host}" as the only gate. Enabling HMAC is coordinated with DU IT.`);
     }
 
-    if (!config.sso_require_freshness) {
-        warnings.push('SSO callbacks are NOT checked for freshness (SSO_REQUIRE_FRESHNESS is off), so a captured callback can be replayed.');
+    /*
+     * Freshness follows the signature (auth/controller.js): with HMAC on the
+     * timestamp and nonce are always checked, whatever SSO_REQUIRE_FRESHNESS
+     * says, because the signature covers them precisely so a captured
+     * callback cannot be replayed. So the flag set to off beside HMAC on is a
+     * contradiction worth naming - the config says one thing and the app
+     * does another - and "not checked for freshness" is only true with both
+     * off.
+     */
+    if (config.sso_require_hmac && !config.sso_require_freshness) {
+        warnings.push('SSO_REQUIRE_FRESHNESS is off but SSO_REQUIRE_HMAC is on: a signed callback is always checked for freshness (the signature covers the timestamp and nonce so a captured callback cannot be replayed), so the flag is ignored. Set it to 1, or remove it.');
+    } else if (!config.sso_require_freshness) {
+        warnings.push('SSO callbacks are NOT checked for freshness (SSO_REQUIRE_FRESHNESS is off, and it follows SSO_REQUIRE_HMAC, also off), so a captured callback can be replayed.');
     }
 
     if (is_blank(config.sso_url)) {
@@ -162,7 +343,43 @@ exports.inspect = function (config, directory_exists = is_directory) {
         warnings.push('SSO_URL is not set, so /login cannot start a sign-in.');
     }
 
+    /*
+     * NODE_ENV=production is what marks the session cookie Secure, compresses
+     * responses and caches compiled templates; .env-example ships
+     * "development". A deployment that keeps it - the obvious mistake, since
+     * nothing else breaks - serves a cookie any plain-http hop could read. A
+     * warning, never fatal: a development machine reachable by name is
+     * legitimate, and a dev environment used as a viewer is not for us to
+     * refuse.
+     */
+    const sign = config.node_env === 'production' ? null : deployed_sign(config);
+
+    if (sign !== null) {
+        warnings.push(`NODE_ENV is "${config.node_env}" but ${sign}. On a deployed host set NODE_ENV=production: without it the session cookie is not marked Secure, responses are not compressed and templates are re-read on every request.`);
+    }
+
     return {fatal, warnings};
+};
+
+/**
+ * One line for a server that could not start listening. A port already in
+ * use, or one this user may not bind, used to surface as an unhandled
+ * 'error' event on the HTTP server: a raw stack trace with the cause buried
+ * in it, after the boot log had already claimed the app was running.
+ * @param error the 'error' event's error
+ * @param port what the app tried to listen on
+ */
+exports.describe_listen_error = function (error, port) {
+
+    if (error.code === 'EADDRINUSE') {
+        return `port ${port} is already in use. Another copy of the app, or something else, is listening on it - stop that, or set APP_PORT to a free port.`;
+    }
+
+    if (error.code === 'EACCES') {
+        return `port ${port} needs privileges this user does not have (ports below 1024 usually do). Set APP_PORT higher and let the proxy front it.`;
+    }
+
+    return `the server could not listen on port ${port}: ${error.code || error.message}.`;
 };
 
 /**

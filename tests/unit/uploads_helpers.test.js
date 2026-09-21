@@ -15,6 +15,9 @@ const CONTROLLER = require('../../uploads/controller');
 
 const sanitize = CONTROLLER._sanitize_filename;
 const is_pdf = CONTROLLER._is_pdf;
+const filename_problem = CONTROLLER._filename_problem;
+const derive_title = CONTROLLER._derive_title;
+const result_message = CONTROLLER._result_message;
 
 test('a traversal attempt cannot escape the storage directory', () => {
 
@@ -78,4 +81,51 @@ test('is_pdf handles a file shorter than the signature', async () => {
     /* a 3-byte file must answer false, not throw or read past the end */
     assert.equal(await is_pdf(await file_with('%PD')), false);
     assert.equal(await is_pdf(await file_with('')), false);
+});
+
+/* --- length limits, measured the way the filesystem and the column do --- */
+
+test('the storage key is limited in bytes, as a filesystem is, not in characters', () => {
+
+    /* 251 + ".pdf" = 255 bytes, the most a name may be */
+    assert.equal(filename_problem('a'.repeat(251)), null);
+    assert.match(filename_problem('a'.repeat(252)), /too long: 256 bytes/);
+
+    /*
+     * the regression: 130 accented characters is 260 bytes of UTF-8 - well
+     * under the old 250-character check, and ENAMETOOLONG on Linux
+     */
+    assert.match(filename_problem('\u00e9'.repeat(130)), /too long: 264 bytes/);
+    assert.equal(filename_problem('\u00e9'.repeat(125)), null);
+
+    assert.equal(filename_problem(''), 'Invalid filename.');
+});
+
+test('the title is the original name trimmed and capped to the column, as the editor would leave it', () => {
+
+    assert.equal(derive_title('Annual Report 2026.pdf', 'annualreport2026'), 'Annual Report 2026');
+    assert.equal(derive_title('  spaced  .PDF', 'spaced'), 'spaced');
+
+    /* tbl_pdfs.title is VARCHAR(500); an uncapped title failed the INSERT with a raw driver message */
+    const long = derive_title('x'.repeat(600) + '.pdf', 'x');
+    assert.equal(long.length, 500);
+
+    /* nothing left after the extension and trimming - the key stands in, as re-sync does */
+    assert.equal(derive_title('.pdf', 'fallback'), 'fallback');
+    assert.equal(derive_title('   .pdf', 'fallback'), 'fallback');
+});
+
+test('a refusal of ours is shown as it is; a driver or filesystem failure is not', () => {
+
+    const ours = new Error('Not a PDF file.');
+    ours.status = 400;
+    assert.equal(result_message(ours), 'Not a PDF file.');
+
+    /* the raw messages name column names, paths and error codes */
+    const mysql = new Error("ER_DATA_TOO_LONG: Data too long for column 'title' at row 1");
+    const fs = new Error("ENAMETOOLONG: name too long, link '/srv/storage/.tmp/abc' -> '/srv/storage/very-long.pdf'");
+
+    for (const error of [mysql, fs]) {
+        assert.equal(result_message(error), 'Upload failed for this file. The server log has the details.');
+    }
 });

@@ -39,13 +39,14 @@
  * viewer.mjs in views/viewer.ejs. Deferred and module scripts both run in
  * document order after parsing, so the listener is always registered first.
  *
- * pdf.js logs "The Preferences may override manually set AppOptions" on every
- * load. It is advisory and fires whenever anything has been set at all - it
- * does not mean a collision happened. Preferences can only reach options of
- * kind PREFERENCE, and none of the seven below are; all seven were verified to
- * still hold these values after preferences are applied. Silencing it means
- * setting disablePreferences, which would also stop the viewer remembering the
- * reader's zoom and sidebar choices - not worth it for a cosmetic warning.
+ * Two of the policy settings below - annotationEditorMode and
+ * enableSignatureEditor - are options of kind PREFERENCE, the kind a stored
+ * pdfjs.preferences entry in localStorage is applied over after this hook
+ * has run. Nothing in this deployment writes that store, but
+ * disablePreferences closes the door anyway, and with it silences the
+ * "The Preferences may override manually set AppOptions" warning pdf.js
+ * otherwise logs on every load. Per-document zoom, sidebar and scroll memory
+ * is ViewHistory, a separate store (pdfjs.history), and is unaffected.
  */
 
 (function () {
@@ -60,6 +61,14 @@
         }
 
         const base = data.pdfjsBase.replace(/\/+$/, '');
+
+        /*
+         * The bundle's version keys the two files loaded by URL from here, so
+         * an upgrade is not served from a day-old browser cache (the page's
+         * own script tags carry the same key). The directory URLs below get
+         * NO query string: pdf.js appends file names to those.
+         */
+        const bust = data.pdfjsV ? '?v=' + encodeURIComponent(data.pdfjsV) : '';
 
         const settings = {
             /*
@@ -106,13 +115,20 @@
             annotationEditorMode: -1,
 
             /*
+             * Keep a stored pdfjs.preferences entry from overriding the two
+             * PREFERENCE-kind settings above - see the file header. This is
+             * the viewer's own switch; it does not touch ViewHistory.
+             */
+            disablePreferences: true,
+
+            /*
              * the document this page was rendered for; the server already
              * resolved it to a uuid, so legacy filename links land directly
              * on the canonical delivery URL instead of via a redirect
              */
             defaultUrl: data.pdfUrl || '',
-            workerSrc: base + '/build/pdf.worker.mjs',
-            sandboxBundleSrc: base + '/build/pdf.sandbox.mjs',
+            workerSrc: base + '/build/pdf.worker.mjs' + bust,
+            sandboxBundleSrc: base + '/build/pdf.sandbox.mjs' + bust,
             cMapUrl: base + '/web/cmaps/',
             iccUrl: base + '/web/iccs/',
             standardFontDataUrl: base + '/web/standard_fonts/',
@@ -132,6 +148,60 @@
                 console.error(`pdf-viewer-config: pdf.js rejected the "${name}" option - check it still exists in this pdf.js release.`);
             }
         }
+
+        /*
+         * A session that expires while the viewer is open - a tab left
+         * overnight, a long document read past the twelve-hour mark - now
+         * surfaces as a plain 401 on the next request for the document,
+         * because the sign-in redirect is one a fetch() cannot follow (it
+         * ends at the identity provider, another origin). pdf.js reports that
+         * poorly: an "unexpected server response" dialog for a document load,
+         * and for a range read mid-document nothing but a console line, with
+         * the page left blank. So watch the answers instead of the symptoms.
+         * pdf.js fetches the document - the whole of it, or ranges of it on
+         * demand - through window.fetch in every supported browser; a 401 for
+         * this document means the session is gone, and the page sends itself
+         * through sign-in and back to this document, which is what a reload
+         * does by hand. Any other answer is left for pdf.js to handle.
+         */
+        if (!data.loginUrl || typeof window.fetch !== 'function') {
+            return;
+        }
+
+        const document_path = new URL(data.pdfUrl, window.location.href).pathname;
+        const original_fetch = window.fetch;
+        let bounced = false;
+
+        function is_this_document(input) {
+
+            /* a string, a URL (href) or a Request (url) */
+            const url = typeof input === 'string' ? input : (input && (input.url || input.href)) || '';
+
+            try {
+                return new URL(url, window.location.href).pathname === document_path;
+            } catch {
+                return false;
+            }
+        }
+
+        window.fetch = function (input) {
+
+            const answer = original_fetch.apply(this, arguments);
+
+            if (!bounced && is_this_document(input)) {
+                answer.then(function (response) {
+
+                    if (response.status === 401 && !bounced) {
+                        bounced = true;
+                        window.location.assign(data.loginUrl + '?next=' + encodeURIComponent(window.location.pathname + window.location.search));
+                    }
+                }, function () {
+                    /* a network failure is pdf.js's to report */
+                });
+            }
+
+            return answer;
+        };
     });
 
 }());
