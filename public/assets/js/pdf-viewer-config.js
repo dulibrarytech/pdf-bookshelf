@@ -41,6 +41,19 @@
 
 (function () {
 
+    /*
+     * pdf.js 6.3.289 is written for current browsers. The newest built-ins
+     * it calls are filled in by browser-support.js, here and in the worker
+     * (pdf-worker.mjs). What cannot be filled in is iterator helpers, which
+     * its library needs to load at all: a browser without them - Firefox
+     * before 131, Safari before 18.4 - gets a plain message instead of a
+     * toolbar that never opens the document.
+     */
+    if (typeof globalThis.Iterator !== 'function' || typeof globalThis.Iterator.prototype.map !== 'function') {
+        show_unsupported();
+        return;
+    }
+
     document.addEventListener('webviewerloaded', function () {
 
         const options = window.PDFViewerApplicationOptions;
@@ -58,6 +71,16 @@
          * query string: pdf.js appends file names to those.
          */
         const bust = data.pdfjsV ? '?v=' + encodeURIComponent(data.pdfjsV) : '';
+
+        /*
+         * The worker starts through pdf-worker.mjs, which installs
+         * browser-support.js in the worker's own global before importing
+         * pdf.js's worker; both keys ride along for its imports. Without an
+         * assets base (an older caller) the bundle's worker loads directly.
+         */
+        const worker_src = data.assetsBase
+            ? data.assetsBase.replace(/\/+$/, '') + '/js/pdf-worker.mjs' + bust + (data.assetV ? (bust ? '&' : '?') + 'a=' + encodeURIComponent(data.assetV) : '')
+            : base + '/build/pdf.worker.mjs' + bust;
 
         const settings = {
             /*
@@ -98,7 +121,7 @@
              * on the canonical delivery URL instead of via a redirect
              */
             defaultUrl: data.pdfUrl || '',
-            workerSrc: base + '/build/pdf.worker.mjs' + bust,
+            workerSrc: worker_src,
             sandboxBundleSrc: base + '/build/pdf.sandbox.mjs' + bust,
             cMapUrl: base + '/web/cmaps/',
             iccUrl: base + '/web/iccs/',
@@ -168,5 +191,34 @@
             return answer;
         };
     });
+
+    /**
+     * Replaces the viewer with a plain message, for a browser that cannot
+     * run it. Built with DOM calls: the CSP allows no inline script.
+     */
+    function show_unsupported() {
+
+        const viewer = document.getElementById('outerContainer');
+
+        if (viewer !== null) {
+            viewer.hidden = true;
+        }
+
+        const card = document.createElement('div');
+        card.setAttribute('role', 'alert');
+        card.style.cssText = 'max-width: 36em; margin: 15vh auto; padding: 1.5em 2em; font: 16px/1.5 system-ui, sans-serif; color: #222; background: #fff; border-radius: 8px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);';
+
+        const heading = document.createElement('h1');
+        heading.style.cssText = 'font-size: 1.25em; margin: 0 0 0.5em;';
+        heading.textContent = 'This browser cannot open the document';
+
+        const text = document.createElement('p');
+        text.style.margin = '0';
+        text.textContent = 'The PDF viewer needs a current browser: Firefox 131 or newer, Safari 18.4 or newer, or an up-to-date Chrome or Edge. Update your browser, or open the document in another one.';
+
+        card.append(heading, text);
+        document.body.append(card);
+        console.error('pdf-viewer-config: this browser has no iterator helpers, which pdf.js needs to load; the viewer was not started.');
+    }
 
 }());

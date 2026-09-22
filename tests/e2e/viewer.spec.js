@@ -120,6 +120,68 @@ test.describe('as a dashboard user', () => {
     });
 });
 
+test.describe('browser support', () => {
+
+    test.beforeEach(async ({page}) => {
+        await sign_in(page, USERS.ADMIN.du_id);
+    });
+
+    test('the worker starts through the support shim, not the main-thread fallback', async ({page}) => {
+
+        const requested = [];
+        const console_lines = [];
+        page.on('request', (request) => requested.push(request.url()));
+        page.on('console', (message) => console_lines.push(message.text()));
+
+        await open_viewer(page, REPORT.uuid);
+
+        expect(await page.evaluate(() => window.PDFViewerApplicationOptions.get('workerSrc'))).toMatch(/\/static\/assets\/js\/pdf-worker\.mjs\?v=6\.3\.289&a=\w+$/);
+        expect(page.workers().map((worker) => worker.url())).toEqual([expect.stringMatching(/\/static\/assets\/js\/pdf-worker\.mjs\?v=6\.3\.289&a=/)]);
+        expect(requested).toEqual(expect.arrayContaining([
+            expect.stringMatching(/\/static\/assets\/js\/browser-support\.js\?a=/),
+            expect.stringMatching(/\/static\/libs\/pdfjs\/build\/pdf\.worker\.mjs\?v=6\.3\.289$/)
+        ]));
+        expect(console_lines.filter((line) => /fake worker/i.test(line))).toEqual([]);
+    });
+
+    test('a browser missing the newest built-ins still gets the viewer, find included', async ({page, context}) => {
+
+        /* what Firefox 140 ESR and Safari 18.0-18.3 lack; the page's shims fill them in */
+        await context.addInitScript(() => {
+            delete Map.prototype.getOrInsertComputed;
+            delete Map.prototype.getOrInsert;
+            delete WeakMap.prototype.getOrInsertComputed;
+            delete WeakMap.prototype.getOrInsert;
+            delete Promise.try;
+            delete RegExp.escape;
+            delete Uint8Array.fromBase64;
+            delete Uint8Array.prototype.toBase64;
+        });
+
+        await open_viewer(page, REPORT.uuid);
+        await expect(page.locator('.textLayer')).toContainText(REPORT.title);
+
+        await page.keyboard.press('Control+f');
+        await page.locator('#findInput').fill('Annual');
+        /* the label's text carries bidi isolation marks; the localisation arguments do not */
+        await expect(page.locator('#findResultsCount')).toHaveAttribute('data-l10n-args', /"current":1,"total":1/);
+    });
+
+    test('a browser below the floor gets a plain message instead of a toolbar that never opens the document', async ({page, context}) => {
+
+        /* pdf.js's library cannot load without iterator helpers (Firefox before 131, Safari before 18.4) */
+        await context.addInitScript(() => {
+            delete globalThis.Iterator;
+        });
+
+        await page.goto(`${APP}/viewer?pdf=${REPORT.uuid}`);
+
+        await expect(page.getByRole('alert')).toContainText('This browser cannot open the document');
+        await expect(page.getByRole('alert')).toContainText('Firefox 131 or newer');
+        await expect(page.locator('#outerContainer')).toBeHidden();
+    });
+});
+
 test('a viewer-tier session opens a document', async ({page}) => {
 
     await sign_in(page, USERS.VIEWER.du_id);

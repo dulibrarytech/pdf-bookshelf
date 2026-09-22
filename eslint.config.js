@@ -78,6 +78,17 @@ module.exports = [
         }
     },
     {
+        /* the worker shim: an ES module that runs inside a Web Worker */
+        files: ['public/assets/js/**/*.mjs'],
+        languageOptions: {
+            ecmaVersion: 2022,
+            sourceType: 'module',
+            globals: {
+                ...globals.worker
+            }
+        }
+    },
+    {
         /* browser-side assets, served as static files to the dashboard */
         files: ['public/assets/js/**/*.js'],
         languageOptions: {

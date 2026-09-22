@@ -33,6 +33,14 @@ test('the viewer page keys the bundle\'s script and stylesheet URLs to its versi
     assert.match(html, /data-pdf-url="\/b\/pdf\/u-1"/);
     /* where the page sends itself when its session has expired */
     assert.match(html, /data-login-url="\/b\/login"/);
+    /* where the worker shim and the app's asset key come from */
+    assert.match(html, /data-assets-base="\/b\/static\/assets"/);
+    assert.match(html, /data-asset-v="A"/);
+
+    /* the browser-support shims run before the bundle: deferred and module scripts execute in document order */
+    const support_at = html.indexOf('/b/static/assets/js/browser-support.js?v=A');
+    assert.ok(support_at > -1, 'browser-support.js is loaded');
+    assert.ok(support_at < html.indexOf('/b/static/libs/pdfjs/build/pdf.mjs?v=V9'), 'and before pdf.mjs');
 
     /* no pdf.js file is loaded without the key, apart from the locale index the l10n loader resolves paths against */
     const unkeyed = [...html.matchAll(/\/static\/libs\/pdfjs\/[^"?]+"/g)].map((m) => m[0]).filter((u) => !/locale\.json"$/.test(u) && !/libs\/pdfjs"$/.test(u));
@@ -164,4 +172,26 @@ test('without a login url the page\'s fetch is left untouched', async () => {
 
     assert.equal(run.fetch, run.original_fetch);
     assert.equal(run.options.get('workerSrc'), '/b/static/libs/pdfjs/build/pdf.worker.mjs');
+});
+
+test('with an assets base the worker starts through the shim, keyed to both the bundle and the app', () => {
+
+    const options = options_set_by_config_script({
+        pdfjsBase: '/b/static/libs/pdfjs/', pdfjsV: '6.3.289', pdfUrl: '/b/pdf/u-1', loginUrl: '/b/login',
+        assetsBase: '/b/static/assets/', assetV: 'A1'
+    });
+
+    assert.equal(options.get('workerSrc'), '/b/static/assets/js/pdf-worker.mjs?v=6.3.289&a=A1');
+    /* the sandbox runs on the main thread, where the page's own shims apply */
+    assert.equal(options.get('sandboxBundleSrc'), '/b/static/libs/pdfjs/build/pdf.sandbox.mjs?v=6.3.289');
+});
+
+test('the worker shim forwards each key to the import it belongs to', () => {
+
+    const source = FS.readFileSync(PATH.join(ROOT, 'public/assets/js/pdf-worker.mjs'), 'utf8');
+
+    /* the shims first, then the bundle's worker; each import keyed by its own parameter */
+    assert.match(source, /await import\(keyed\('\.\/browser-support\.js', 'a'\)\);\s*const worker = await import\(keyed\('\.\.\/\.\.\/libs\/pdfjs\/build\/pdf\.worker\.mjs', 'v'\)\);/);
+    /* pdf.js's main-thread fallback imports this file and reads the handler off it */
+    assert.match(source, /export const WorkerMessageHandler = worker\.WorkerMessageHandler;/);
 });
