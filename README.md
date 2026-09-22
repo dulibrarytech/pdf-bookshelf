@@ -76,6 +76,22 @@ ALLOW_DESTRUCTIVE_ROLLBACK=1 npm run migrate:rollback
 
 Never set that against a database anyone else is using.
 
+## Browser support
+
+pdf.js 6.3.289 is written for current browsers, and two of the built-ins it
+calls only arrived in 2025-2026 (`Map.prototype.getOrInsertComputed` in
+Firefox 144, Chrome 145 and Safari 18.4; `Math.sumPrecise`, `Promise.try`,
+`RegExp.escape` and the `Uint8Array` base64 and hex methods a little
+earlier). Without them the toolbar appears and the document never loads,
+with the cause only in the console - which is what Firefox 140 ESR does.
+`public/assets/js/browser-support.js` fills those in, on the page and,
+through `pdf-worker.mjs`, in pdf.js's worker, so the floor is what the
+library needs to load at all: iterator helpers - Firefox 131, Chrome 122,
+Safari 18.4. Below that the viewer page shows a plain "update your browser"
+message instead. Older Firefox builds can be tried locally through earlier
+Playwright releases, which bundle them (Playwright 1.46 has Firefox 128,
+1.48 has 131, 1.50 has 134, 1.54 has 140).
+
 ## Upgrading the PDF viewer
 
 pdf.js is vendored into `public/libs/pdfjs` and committed, because npm's
