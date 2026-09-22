@@ -34,23 +34,27 @@
                 <span class="user-label">
                     <%= user.first_name || user.du_id %><%= user.last_name ? ' ' + user.last_name : '' %>
                 </span>
-                <a href="<%= app_path %>/logout" title="Sign out" aria-label="Sign out">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="1.75"
-                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                        <polyline points="16 17 21 12 16 7"/>
-                        <line x1="21" y1="12" x2="9" y2="12"/>
-                    </svg>
-                </a>
+                <%/* a form, not a link: signing out changes state, and a GET
+                     could be triggered by a link on anyone's page */%>
+                <form method="post" action="<%= app_path %>/logout" class="sign-out">
+                    <button type="submit" title="Sign out" aria-label="Sign out">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="1.75"
+                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16 17 21 12 16 7"/>
+                            <line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                    </button>
+                </form>
             <% } %>
         </div>
     </header>
 
     <%
         /* sidebar highlighting: pages pass `active` via view locals */
-        var nav_active = typeof active !== 'undefined' ? active : '';
-        var is_admin = typeof user !== 'undefined' && user && user.role === 'admin';
+        const nav_active = typeof active !== 'undefined' ? active : '';
+        const is_admin = typeof user !== 'undefined' && user && user.role === 'admin';
     %>
     <nav class="app-sidebar" aria-label="Main navigation">
         <a href="<%= app_path %>/dashboard/home"

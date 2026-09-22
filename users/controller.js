@@ -1,19 +1,17 @@
 /**
-
- Copyright 2026 University of Denver
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
+ * Copyright 2026 University of Denver
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 'use strict';
@@ -22,6 +20,7 @@ const CONFIG = require('../config/config');
 const MODEL = require('./model');
 const FORMAT = require('../libs/format');
 const LOGGER = require('../libs/log4');
+const { ValidationError } = require('../libs/errors');
 
 function view_locals(req, extra = {}) {
 
@@ -35,6 +34,29 @@ function view_locals(req, extra = {}) {
     }, extra);
 }
 
+/**
+ * True when an admin is taking their own admin role away. Pure, for tests.
+ * @param actor req.user - the signed-in admin making the request
+ * @param target_id the user being edited
+ * @param requested_role the role the form is asking for
+ */
+function is_self_demotion(actor, target_id, requested_role) {
+
+    return actor !== undefined
+        && actor.role === 'admin'
+        && actor.id === target_id
+        && requested_role !== 'admin';
+}
+
+/**
+ * Answers a row-shaped failure; the users table has six columns. A refusal
+ * the model raised (validation, conflict, not found) is shown as it is;
+ * anything else is logged and replaced by the fallback, so a database error
+ * never reaches the screen. Rendered through a view so the text is escaped.
+ * @param res
+ * @param error
+ * @param fallback shown in place of an unexpected error's own message
+ */
 function error_row(res, error, fallback) {
 
     const status = error.status || 500;
@@ -43,7 +65,11 @@ function error_row(res, error, fallback) {
         LOGGER.module().error('ERROR: [/users/controller] ' + error.message);
     }
 
-    res.status(status).send(`<tr><td colspan="6" class="text-danger">${status === 500 ? fallback : error.message}</td></tr>`);
+    res.status(status).render('fragments/message-row', {
+        colspan: 6,
+        css: 'text-danger',
+        message: status === 500 ? fallback : error.message
+    });
 }
 
 exports.get_users_page = async function (req, res) {
@@ -79,7 +105,7 @@ exports.create_user = async function (req, res) {
             LOGGER.module().error('ERROR: [/users/controller (create_user)] ' + error.message);
         }
 
-        res.status(status).send(`<div class="alert alert-danger mb-0">${status === 500 ? 'Unable to save the user.' : error.message}</div>`);
+        res.status(status).render('fragments/alert', {message: status === 500 ? 'Unable to save the user.' : error.message});
     }
 };
 
@@ -109,15 +135,22 @@ exports.get_user_edit_row = async function (req, res) {
 exports.update_user = async function (req, res) {
 
     try {
+
+        /* your own admin role is not yours to drop; the model's last-admin guard is the hard safety net */
+        if (is_self_demotion(req.user, parseInt(req.params.id, 10) || 0, String(req.body.role || '').trim())) {
+            throw new ValidationError('You cannot remove your own administrator role. Ask another administrator to change it.');
+        }
+
         const row = await MODEL.update(req.params.id, req.body);
         res.render('fragments/user-row', view_locals(req, {row: row}));
+
     } catch (error) {
         error_row(res, error, 'Unable to save changes.');
     }
 };
 
 /**
- * DELETE /dashboard/users/:id - soft delete; PATCH reactivates
+ * DELETE /dashboard/users/:id - soft delete; POST /:id/reactivate undoes it
  */
 exports.deactivate_user = async function (req, res) {
 
@@ -125,8 +158,7 @@ exports.deactivate_user = async function (req, res) {
 
         /* an admin locking themselves out is one click away - refuse */
         if (req.user.id === (parseInt(req.params.id, 10) || 0)) {
-            res.status(400).send('<tr><td colspan="6" class="text-danger">You cannot deactivate your own account.</td></tr>');
-            return;
+            throw new ValidationError('You cannot deactivate your own account.');
         }
 
         const row = await MODEL.set_active(req.params.id, false);
@@ -146,3 +178,6 @@ exports.reactivate_user = async function (req, res) {
         error_row(res, error, 'Unable to reactivate the user.');
     }
 };
+
+/* exported for tests */
+exports._is_self_demotion = is_self_demotion;

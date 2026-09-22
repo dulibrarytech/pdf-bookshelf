@@ -1,19 +1,17 @@
 /**
-
- Copyright 2026 University of Denver
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
+ * Copyright 2026 University of Denver
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 'use strict';
@@ -21,10 +19,9 @@
 /*
  * JWT helpers - sign/verify plus httpOnly cookie issuance/extraction.
  *
- * The session token travels ONLY in an httpOnly, SameSite=Lax cookie
- * (v1 put JWTs in ?t= query strings, which leaked via logs, history and
- * Referer headers). JS can't read the cookie and the pdf.js viewer needs
- * no token plumbing - the cookie rides along on /pdf/:uuid requests.
+ * The session token travels only in an httpOnly, SameSite=Lax cookie: JS
+ * cannot read it, and the pdf.js viewer needs no token plumbing because the
+ * cookie rides along on /pdf/:uuid requests.
  */
 
 const JWT = require('jsonwebtoken');
@@ -66,13 +63,18 @@ exports.verify = function (token) {
     });
 };
 
+/*
+ * Scoped to APP_PATH, not '/': everything that reads the session lives under
+ * APP_PATH, and the routes outside it take no auth. Falls back to '/' when
+ * APP_PATH is empty, the documented way to mount at the domain root.
+ */
 function cookie_options() {
 
     return {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        path: '/'
+        path: CONFIG.app_path || '/'
     };
 }
 
@@ -93,7 +95,14 @@ exports.issue_cookie = function (res, payload) {
  * @param res
  */
 exports.clear_cookie = function (res) {
-    res.clearCookie(COOKIE_NAME, cookie_options());
+
+    const options = cookie_options();
+    res.clearCookie(COOKIE_NAME, options);
+
+    /* also clear the root-scoped cookie earlier versions set; harmless once none are left */
+    if (options.path !== '/') {
+        res.clearCookie(COOKIE_NAME, Object.assign({}, options, {path: '/'}));
+    }
 };
 
 /**

@@ -1,19 +1,17 @@
 /**
-
- Copyright 2026 University of Denver
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
+ * Copyright 2026 University of Denver
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 'use strict';
@@ -84,6 +82,21 @@ exports.get = async function (id) {
     return user;
 };
 
+/**
+ * Turns the database's refusal of a second row for a DU ID into the answer
+ * the pre-check gives. The unique index on du_id (migration 20260921000003)
+ * is what keeps one row per person; the SELECT in create() only spares the
+ * common case a round trip to a failing INSERT.
+ * @param error thrown by the INSERT
+ * @returns {Error} a ConflictError for a duplicate key, otherwise the error as given
+ */
+function as_conflict(error) {
+
+    return error.code === 'ER_DUP_ENTRY'
+        ? new ConflictError('A user with this DU ID already exists.')
+        : error;
+}
+
 exports.create = async function (body) {
 
     const user = validate_profile(body);
@@ -95,9 +108,48 @@ exports.create = async function (body) {
         throw new ConflictError('A user with this DU ID already exists.');
     }
 
-    const [id] = await DB(USERS).insert(user);
+    let id;
+
+    try {
+        [id] = await DB(USERS).insert(user);
+    } catch (error) {
+        throw as_conflict(error);
+    }
+
     return exports.get(id);
 };
+
+/**
+ * True when taking admin away from this user would leave nobody able to
+ * administer the app. Pure, so the rule is testable without a database.
+ * @param id the user being demoted or deactivated
+ * @param active_admin_ids ids of every currently active admin
+ */
+function is_last_active_admin(id, active_admin_ids) {
+    return active_admin_ids.length === 1 && active_admin_ids[0] === id;
+}
+
+/**
+ * Refuses a change that would leave the app with no active administrator -
+ * there is no in-app way back from that. Runs inside the caller's
+ * transaction and locks every active admin row, in id order, so concurrent
+ * guards queue rather than deadlock, and cannot both commit.
+ * @param trx
+ * @param id the user being changed
+ * @param action wording for the message
+ */
+async function guard_last_admin(trx, id, action) {
+
+    const admins = await trx(USERS)
+        .select('id')
+        .where({role: 'admin', is_active: 1})
+        .orderBy('id', 'asc')
+        .forUpdate();
+
+    if (is_last_active_admin(id, admins.map((row) => row.id))) {
+        throw new ConflictError(`This is the only active administrator. Give another user the admin role before ${action}.`);
+    }
+}
 
 /**
  * Updates profile fields only - the DU ID is the SSO identity key and is
@@ -105,28 +157,52 @@ exports.create = async function (body) {
  */
 exports.update = async function (id, body) {
 
+    const user_id = parseInt(id, 10) || 0;
     const user = validate_profile(body);
-    const updated = await DB(USERS).where({id: parseInt(id, 10) || 0}).update(user);
 
-    if (updated === 0) {
-        throw new NotFoundError('User not found.');
-    }
+    await DB.transaction(async function (trx) {
 
-    return exports.get(id);
+        if (user.role !== 'admin') {
+            await guard_last_admin(trx, user_id, 'changing this one');
+        }
+
+        const updated = await trx(USERS).where({id: user_id}).update(user);
+
+        if (updated === 0) {
+            throw new NotFoundError('User not found.');
+        }
+    });
+
+    return exports.get(user_id);
 };
 
 /**
- * Soft delete / reactivate (v1 hard-deleted rows)
+ * Soft delete / reactivate
  * @param id
  * @param active
  */
 exports.set_active = async function (id, active) {
 
-    const updated = await DB(USERS).where({id: parseInt(id, 10) || 0}).update({is_active: active ? 1 : 0});
+    const user_id = parseInt(id, 10) || 0;
 
-    if (updated === 0) {
-        throw new NotFoundError('User not found.');
-    }
+    await DB.transaction(async function (trx) {
 
-    return exports.get(id);
+        if (active !== true) {
+            await guard_last_admin(trx, user_id, 'deactivating this one');
+        }
+
+        const updated = await trx(USERS).where({id: user_id}).update({is_active: active ? 1 : 0});
+
+        if (updated === 0) {
+            throw new NotFoundError('User not found.');
+        }
+    });
+
+    return exports.get(user_id);
 };
+
+/* exported for tests */
+exports._is_last_active_admin = is_last_active_admin;
+exports._validate_profile = validate_profile;
+exports._validate_du_id = validate_du_id;
+exports._as_conflict = as_conflict;

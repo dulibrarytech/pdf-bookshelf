@@ -27,14 +27,28 @@
 <div class="content-card">
     <div class="content-card-header">
         <h2 class="h5 mb-0">All PDFs</h2>
-        <div class="control-group" style="min-width: 280px;">
+        <%/* both controls include the whole group (hx-include), so a search
+             keeps the "Show removed" toggle and the toggle keeps the search;
+             the sort and page links in the fragment carry both as well */%>
+        <div class="control-group" id="bookshelf-filters" style="min-width: 280px;">
             <span class="spinner-border spinner-border-sm text-secondary htmx-indicator" id="search-indicator" aria-hidden="true"></span>
             <input type="search" class="form-control form-control-sm" name="q" value="<%= table.q %>"
                    placeholder="Search title or filename&hellip;" aria-label="Search PDFs"
                    hx-get="<%= app_path %>/dashboard/pdfs"
                    hx-trigger="input changed delay:300ms, search"
+                   hx-include="#bookshelf-filters"
                    hx-target="#bookshelf-table" hx-swap="innerHTML"
                    hx-indicator="#search-indicator">
+            <div class="form-check form-check-inline m-0 text-nowrap">
+                <input class="form-check-input" type="checkbox" id="show-removed" name="removed" value="1"
+                       <%= table.removed ? 'checked' : '' %>
+                       hx-get="<%= app_path %>/dashboard/pdfs"
+                       hx-trigger="change"
+                       hx-include="#bookshelf-filters"
+                       hx-target="#bookshelf-table" hx-swap="innerHTML"
+                       hx-indicator="#search-indicator">
+                <label class="form-check-label small" for="show-removed">Show removed</label>
+            </div>
         </div>
     </div>
     <%/* persistent live regions: app.js copies the result count here after each

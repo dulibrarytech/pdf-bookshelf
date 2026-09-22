@@ -9,29 +9,39 @@
   "scripts": {
     "start": "node pdf-bookshelf.js",
     "dev": "node --watch pdf-bookshelf.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "vendor": "node scripts/vendor-assets.js",
+    "vendor:pdfjs": "node scripts/vendor-pdfjs.js",
+    "postinstall": "node scripts/vendor-assets.js",
     "migrate": "knex migrate:latest",
     "migrate:rollback": "knex migrate:rollback",
-    "test": "node --test tests/unit/*.test.js"
+    "test": "node --test tests/unit/*.test.js tests/integration/*.test.js",
+    "test:e2e": "playwright test",
+    "test:all": "npm test && npm run test:e2e"
   },
   "author": "fernando.reyes@du.edu",
   "license": "Apache-2.0",
   "dependencies": {
+    "bootstrap": "^5.3.7",
     "compression": "^1.8.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.0",
     "ejs": "^3.1.10",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
+    "htmx.org": "^2.0.6",
     "jsonwebtoken": "^9.0.3",
     "knex": "^3.1.0",
     "log4js": "^6.9.1",
-    "multer": "^2.2.0",
+    "multer": "^2.3.0",
     "mysql2": "^3.14.0",
     "validator": "^13.15.35"
   },
   "devDependencies": {
-    "bootstrap": "^5.3.7",
-    "htmx.org": "^2.0.6"
+    "@eslint/js": "^9.39.5",
+    "@playwright/test": "1.59.1",
+    "eslint": "^9.39.5",
+    "globals": "^15.15.0"
   }
 }

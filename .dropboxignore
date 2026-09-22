@@ -1,0 +1,24 @@
+# pdf-bookshelf/.dropboxignore
+#
+# Project-scoped rules. Everything workspace-wide (node_modules, logs, tmp,
+# .env, .DS_Store) already comes from ../.dropboxignore — only put rules here
+# that genuinely should NOT apply to every project, which is what that file
+# says to do for `storage`.
+
+# ---- The PDF corpus ----
+# storage/ holds the purchased PDFs the app serves - ~800 of them once this is
+# loaded with production-shaped data, and licensed content that has no business
+# replicating into a personal Dropbox. The canonical copy lives on the server;
+# this directory is a local convenience, rebuilt by restoring from there or by
+# uploading through the dashboard.
+#
+# Also avoids Dropbox writing to files under an app that is actively streaming
+# them, and the "(conflicted copy)" files that produces.
+#
+# Added while the directory held only two 1 MB test files, per the workspace
+# convention of excluding a heavy directory BEFORE it fills up.
+#
+# NOTE: like .env, this is not regenerable by sync. Once applied the directory
+# is removed from the cloud and from other devices, surviving only where a copy
+# already exists.
+storage

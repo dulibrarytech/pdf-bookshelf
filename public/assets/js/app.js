@@ -1,19 +1,17 @@
 /**
-
- Copyright 2026 University of Denver
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
+ * Copyright 2026 University of Denver
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 'use strict';
@@ -27,14 +25,15 @@
     /*
      * htmx refuses to swap 4xx responses by default; our fragment endpoints
      * answer validation failures with error fragments meant for the target.
-     * The add-user form is special-cased into its message slot so a rejected
-     * submit doesn't wipe the form.
+     * 401, 403 and 429 are the exception: the auth middleware and the rate
+     * limiter drive those with response headers (HX-Redirect, HX-Reswap
+     * none, HX-Trigger) and send no body.
      */
     document.body.addEventListener('htmx:beforeSwap', function (event) {
 
         const status = event.detail.xhr.status;
 
-        if (status < 400 || status >= 500) {
+        if (status < 400 || status >= 500 || status === 401 || status === 403 || status === 429) {
             return;
         }
 
@@ -42,14 +41,14 @@
         event.detail.isError = false;
     });
 
-    /* sidebar icon-rail tooltips (Bootstrap; same treatment as repov2) */
+    /* sidebar icon-rail tooltips (Bootstrap) */
     document.addEventListener('DOMContentLoaded', function () {
 
         if (window.bootstrap === undefined) {
             return;
         }
 
-        document.querySelectorAll('.app-sidebar a[title], .app-header .header-actions a[title]').forEach(function (el) {
+        document.querySelectorAll('.app-sidebar a[title], .app-header .header-actions a[title], .app-header .header-actions button[title]').forEach(function (el) {
             new window.bootstrap.Tooltip(el, {
                 placement: el.closest('.app-sidebar') !== null ? 'right' : 'bottom',
                 delay: {show: 100, hide: 0},
@@ -85,8 +84,7 @@
             return;
         }
 
-        /* actions live in a kebab menu now - focus its toggle (falls back to
-           the first button for rows without one, e.g. future layouts) */
+        /* focus the row's menu toggle, or its first button */
         const target = row.querySelector('.kebab-btn') || row.querySelector('button');
 
         if (target !== null) {
@@ -114,14 +112,10 @@
     });
 
     /*
-     * Copy-to-clipboard for cataloged PDF URLs (v1 parity). Buttons carry
-     * data-copy-url (a root-relative path - the copied link uses the origin
-     * staff are browsing, so dev copies dev and prod copies prod). Delegated
-     * so it survives htmx row swaps.
-     *
-     * Feedback is twofold (WCAG): the button label changes to "Copied" for a
-     * few seconds (visible, not color-only), and the #copy-status live region
-     * announces the outcome for screen readers.
+     * Copy-to-clipboard for catalogued PDF URLs. Buttons carry data-copy-url,
+     * a root-relative path, so the copied link uses the origin staff are
+     * browsing. Delegated so it survives htmx row swaps. Feedback is twofold
+     * (WCAG): the toast is visible, the #copy-status live region is spoken.
      */
     function fallback_copy(text) {
 
@@ -137,7 +131,7 @@
 
         try {
             copied = document.execCommand('copy');
-        } catch (error) {
+        } catch {
             copied = false;
         }
 
@@ -145,10 +139,71 @@
         return copied;
     }
 
-    /* the kebab menu closes on click, so visible copy feedback is a transient
-       toast; the #copy-status live region carries the screen-reader
-       announcement (the toast is aria-hidden to avoid double-speaking) */
-    let copy_toast_timer = null;
+    /*
+     * Transient feedback used by copy-to-clipboard and by refused actions.
+     * The kebab menu closes on click, so there is nowhere inline to put a
+     * message. The toast is aria-hidden and announce() carries the
+     * screen-reader half, so nothing is spoken twice.
+     */
+    let toast_timer = null;
+
+    function show_toast(text) {
+
+        let toast = document.getElementById('copy-toast');
+
+        if (toast === null) {
+            toast = document.createElement('div');
+            toast.id = 'copy-toast';
+            toast.className = 'copy-toast';
+            toast.setAttribute('aria-hidden', 'true');
+            document.body.appendChild(toast);
+        }
+
+        toast.textContent = text;
+        toast.classList.add('is-visible');
+        clearTimeout(toast_timer);
+        toast_timer = setTimeout(function () {
+            toast.classList.remove('is-visible');
+        }, 3000);
+    }
+
+    /*
+     * pages that carry their own live region reuse it; the rest get one made
+     * on demand, so an announcement is never silently dropped
+     */
+    function announce(text) {
+
+        let region = document.getElementById('copy-status');
+
+        if (region === null) {
+
+            region = document.getElementById('app-status');
+
+            if (region === null) {
+                region = document.createElement('div');
+                region.id = 'app-status';
+                region.className = 'visually-hidden';
+                region.setAttribute('aria-live', 'polite');
+                document.body.appendChild(region);
+            }
+        }
+
+        region.textContent = text;
+    }
+
+    /*
+     * The auth middleware refuses an htmx action with headers and no body, so
+     * nothing swaps. Without this the click would appear to do nothing at all.
+     */
+    document.body.addEventListener('bookshelf:denied', function (event) {
+
+        const message = (event.detail && event.detail.message)
+            ? event.detail.message
+            : 'You do not have permission to do that.';
+
+        show_toast(message);
+        announce(message);
+    });
 
     document.body.addEventListener('click', function (event) {
 
@@ -160,27 +215,6 @@
 
         const url = window.location.origin + button.getAttribute('data-copy-url');
         const name = button.getAttribute('data-copy-name') || 'PDF';
-        const status = document.getElementById('copy-status');
-
-        function show_toast(text) {
-
-            let toast = document.getElementById('copy-toast');
-
-            if (toast === null) {
-                toast = document.createElement('div');
-                toast.id = 'copy-toast';
-                toast.className = 'copy-toast';
-                toast.setAttribute('aria-hidden', 'true');
-                document.body.appendChild(toast);
-            }
-
-            toast.textContent = text;
-            toast.classList.add('is-visible');
-            clearTimeout(copy_toast_timer);
-            copy_toast_timer = setTimeout(function () {
-                toast.classList.remove('is-visible');
-            }, 3000);
-        }
 
         function report(ok) {
 
@@ -188,10 +222,7 @@
                 ? `URL for ${name} copied to clipboard: ${url}`
                 : `Could not copy the URL for ${name}. The URL is ${url}`;
 
-            if (status !== null) {
-                status.textContent = message;
-            }
-
+            announce(message);
             show_toast(message);
         }
 

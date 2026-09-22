@@ -1,29 +1,31 @@
 /**
-
- Copyright 2026 University of Denver
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
- http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
+ * Copyright 2026 University of Denver
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 'use strict';
 
 /*
- * Upload flow (v1's POST /uploads had NO auth and a broken file filter):
+ * Upload flow:
  *   1. multer stages each file into storage/.tmp under a random name
  *   2. per file: sha256, sanitized final name, DB uniqueness check
- *   3. rename into storage/ + insert row; conflicts are reported per file
- *      and never clobber an existing PDF
+ *   3. publish into storage/ exclusively + insert row; a name already taken
+ *      on disk or in the database is reported per file and never overwritten
+ *
+ * One exception: a name that belongs to a removed record whose file is gone
+ * from storage revives that record, so its uuid and every catalogued link
+ * keep working.
  */
 
 const FS = require('node:fs');
@@ -33,10 +35,17 @@ const CONFIG = require('../config/config');
 const DB = require('../config/db');
 const FORMAT = require('../libs/format');
 const LOGGER = require('../libs/log4');
+const STORAGE = require('../libs/storage');
+const { ValidationError, ConflictError } = require('../libs/errors');
 
 const PDFS = 'tbl_pdfs';
+const EXTENSION = '.pdf';
 /* %PDF- */
 const PDF_MAGIC = Buffer.from('%PDF-');
+/* what a filesystem allows for one name, in bytes - ext4 and most others */
+const NAME_MAX_BYTES = 255;
+/* tbl_pdfs.title is VARCHAR(500); the dashboard's title editor caps at the same */
+const TITLE_MAX = 500;
 
 function view_locals(req, extra = {}) {
 
@@ -61,6 +70,57 @@ function sanitize_filename(original) {
         .replace(/[/\\?%*:|"<>]/g, '-')
         .replace(/\.pdf$/i, '')
         .toLowerCase();
+}
+
+/**
+ * Why a sanitized storage key cannot be used, or null when it can. Measured
+ * in bytes, as the filesystem does: 200 accented characters are 400 bytes of
+ * UTF-8, ENAMETOOLONG on Linux however few characters they are.
+ * @param filename the sanitized key, without the extension
+ * @returns {string|null} a message for the upload results, or null
+ */
+function filename_problem(filename) {
+
+    if (filename.length === 0) {
+        return 'Invalid filename.';
+    }
+
+    const bytes = Buffer.byteLength(filename + EXTENSION, 'utf8');
+
+    if (bytes > NAME_MAX_BYTES) {
+        return `Filename is too long: ${bytes} bytes including "${EXTENSION}", and a file name can be at most ${NAME_MAX_BYTES}. Shorten it and upload again.`;
+    }
+
+    return null;
+}
+
+/**
+ * The display title an upload starts with: the original name minus its
+ * extension, trimmed and capped to what the column holds - the shape the
+ * dashboard's title editor produces. Falls back to the storage key when
+ * nothing is left.
+ * @param original the name as uploaded
+ * @param filename the sanitized storage key
+ */
+function derive_title(original, filename) {
+
+    const title = original.replace(/\.pdf$/i, '').trim().substring(0, TITLE_MAX);
+
+    return title.length > 0 ? title : filename;
+}
+
+/**
+ * What the results list says about a failed file. A refusal of ours carries
+ * a status and is shown as it is; anything else - a database or filesystem
+ * failure - names paths and drivers, not anything a staff member can act on,
+ * so it is replaced by a generic line (the caller logs the real one).
+ * @param error
+ */
+function result_message(error) {
+
+    return error.status === undefined
+        ? 'Upload failed for this file. The server log has the details.'
+        : error.message;
 }
 
 function sha256_file(path) {
@@ -110,42 +170,98 @@ exports.upload = async function (req, res) {
         /* multer decodes originalname as latin1; recover utf8 titles */
         const original = Buffer.from(file.originalname, 'latin1').toString('utf8');
         const filename = sanitize_filename(original);
+        const destination = PATH.join(PATH.resolve(CONFIG.storage_path), filename + EXTENSION);
+        let published = false;
 
         try {
 
-            if (filename.length === 0 || filename.length > 250) {
-                throw new Error('Invalid filename.');
+            const problem = filename_problem(filename);
+
+            if (problem !== null) {
+                throw new ValidationError(problem);
             }
 
             if (!await is_pdf(file.path)) {
-                throw new Error('Not a PDF file.');
+                throw new ValidationError('Not a PDF file.');
             }
 
-            const existing = await DB(PDFS).select('id').where({filename: filename}).first();
+            const existing = await DB(PDFS).select('id', 'is_active').where({filename: filename}).first();
 
-            if (existing !== undefined) {
-                throw new Error('A PDF with this filename is already on the bookshelf.');
+            if (existing !== undefined && Number(existing.is_active) === 1) {
+                throw new ConflictError('A PDF with this filename is already on the bookshelf.');
             }
 
             const sha256 = await sha256_file(file.path);
-            const destination = PATH.join(PATH.resolve(CONFIG.storage_path), filename + '.pdf');
 
-            await FS.promises.rename(file.path, destination);
+            /*
+             * The check above only sees the database. Publishing exclusively
+             * is what actually protects bytes already in storage/ - from a
+             * file with no row, and from a second upload of the same name
+             * racing this one past the check.
+             */
+            try {
+                await STORAGE.move_exclusive(file.path, destination);
+            } catch (error) {
 
-            await DB(PDFS).insert({
-                uuid: CRYPTO.randomUUID(),
-                filename: filename,
-                title: original.replace(/\.pdf$/i, ''),
-                file_size: file.size,
-                sha256: sha256,
-                uploaded_by: req.user.id
-            });
+                if (error.code === 'EEXIST') {
+                    throw new ConflictError(existing !== undefined
+                        ? 'A PDF with this filename was removed from the bookshelf and its file is still in storage. Restore it from Bookshelf → Show removed instead of uploading it again.'
+                        : 'A file with this name is already in storage. If it is not on the bookshelf, run Utilities → Re-sync.');
+                }
 
-            results.push({name: original, size: file.size, saved: true, message: 'Saved.'});
+                throw error;
+            }
+
+            published = true;
+
+            const title = derive_title(original, filename);
+
+            if (existing !== undefined) {
+
+                /*
+                 * A removed record whose file is gone: this upload puts the
+                 * record back rather than creating a second one, so its uuid -
+                 * and every catalogued link to it - keeps working. The
+                 * filename is written too because the database matched it
+                 * case-insensitively and delivery does not.
+                 */
+                await DB(PDFS).where({id: existing.id}).update({
+                    is_active: 1,
+                    filename: filename,
+                    title: title,
+                    file_size: file.size,
+                    sha256: sha256,
+                    uploaded_by: req.user.id
+                });
+
+                results.push({name: original, size: file.size, saved: true, message: 'Saved. This filename belonged to a removed PDF; that record is back on the bookshelf with this file.'});
+
+            } else {
+
+                await DB(PDFS).insert({
+                    uuid: CRYPTO.randomUUID(),
+                    filename: filename,
+                    title: title,
+                    file_size: file.size,
+                    sha256: sha256,
+                    uploaded_by: req.user.id
+                });
+
+                results.push({name: original, size: file.size, saved: true, message: 'Saved.'});
+            }
 
         } catch (error) {
 
-            results.push({name: original, size: file.size, saved: false, message: error.message});
+            /* a failure after the move would strand a file no row points at */
+            if (published) {
+                await FS.promises.unlink(destination).catch(function () {});
+            }
+
+            if (error.status === undefined) {
+                LOGGER.module().error(`ERROR: [/uploads/controller (upload)] ${original}: ${error.message}`);
+            }
+
+            results.push({name: original, size: file.size, saved: false, message: result_message(error)});
             FS.promises.unlink(file.path).catch(function () {});
         }
     }
@@ -166,7 +282,7 @@ exports.upload = async function (req, res) {
 /**
  * Multer error handler - answers with the same result fragment shape
  */
-exports.upload_error = function (error, req, res, next) {
+exports.upload_error = function (error, req, res, _next) {
 
     LOGGER.module().error('ERROR: [/uploads/controller (upload_error)] ' + error.message);
 
@@ -178,3 +294,10 @@ exports.upload_error = function (error, req, res, next) {
         results: [{name: 'Upload rejected', size: 0, saved: false, message: message}]
     }));
 };
+
+/* exported for tests */
+exports._sanitize_filename = sanitize_filename;
+exports._is_pdf = is_pdf;
+exports._filename_problem = filename_problem;
+exports._derive_title = derive_title;
+exports._result_message = result_message;

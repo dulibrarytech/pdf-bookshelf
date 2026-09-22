@@ -1,13 +1,26 @@
+<%
+/* skipped and failed only appear when there is something in them, so the
+   everyday report keeps its three-badge shape. "In sync" means nothing at all
+   to report - a file that cannot be served is not in sync either. */
+const problems = report.skipped.length + report.failed.length;
+const in_sync = report.added.length === 0 && report.updated.length === 0 && report.missing.length === 0 && problems === 0;
+%>
 <div class="content-card">
     <div class="content-card-header mb-2">
         <h2 class="h6 mb-0">Re-sync report</h2>
-        <span class="text-body-secondary small"><%= report.scanned %> file<%= report.scanned === 1 ? '' : 's' %> scanned</span>
+        <span class="text-body-secondary small"><%= report.scanned %> file<%= report.scanned === 1 ? '' : 's' %> scanned<% if (typeof took_ms !== 'undefined') { %> &middot; <%= (took_ms / 1000).toFixed(1) %> s<% } %></span>
     </div>
     <div>
         <div class="row g-3 mb-2">
             <div class="col-auto"><span class="badge text-bg-success"><%= report.added.length %> added</span></div>
             <div class="col-auto"><span class="badge text-bg-info"><%= report.updated.length %> updated</span></div>
             <div class="col-auto"><span class="badge <%= report.missing.length > 0 ? 'text-bg-danger' : 'text-bg-secondary' %>"><%= report.missing.length %> missing file<%= report.missing.length === 1 ? '' : 's' %></span></div>
+            <% if (report.skipped.length > 0) { %>
+            <div class="col-auto"><span class="badge text-bg-warning"><%= report.skipped.length %> skipped</span></div>
+            <% } %>
+            <% if (report.failed.length > 0) { %>
+            <div class="col-auto"><span class="badge text-bg-danger"><%= report.failed.length %> failed</span></div>
+            <% } %>
         </div>
         <% if (report.added.length > 0) { %>
         <h2 class="h6 mt-3">Added to the bookshelf</h2>
@@ -21,7 +34,15 @@
         <h2 class="h6 mt-3 text-danger">Records whose file is missing from storage</h2>
         <ul class="small mb-0"><% for (const name of report.missing) { %><li><%= name %></li><% } %></ul>
         <% } %>
-        <% if (report.added.length === 0 && report.updated.length === 0 && report.missing.length === 0) { %>
+        <% if (report.skipped.length > 0) { %>
+        <h2 class="h6 mt-3">Skipped &ndash; in storage but not catalogued</h2>
+        <ul class="small mb-0"><% for (const item of report.skipped) { %><li><strong><%= item.name %></strong> &mdash; <%= item.reason %></li><% } %></ul>
+        <% } %>
+        <% if (report.failed.length > 0) { %>
+        <h2 class="h6 mt-3 text-danger">Could not be written</h2>
+        <ul class="small mb-0"><% for (const item of report.failed) { %><li><strong><%= item.name %></strong> &mdash; <%= item.message %></li><% } %></ul>
+        <% } %>
+        <% if (in_sync) { %>
         <p class="text-body-secondary mb-0">Storage and database are in sync.</p>
         <% } %>
     </div>

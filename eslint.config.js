@@ -1,0 +1,94 @@
+/**
+ * Copyright 2026 University of Denver
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+'use strict';
+
+/*
+ * Workspace conventions: no var, const by default, strict equality, and
+ * narrative comments as starred blocks. ESLint cannot parse .ejs, so the
+ * templates' scriptlet JS is covered by tests/unit/no_var_in_templates.test.js.
+ */
+
+const js = require('@eslint/js');
+const globals = require('globals');
+
+module.exports = [
+    {
+        ignores: [
+            'node_modules/**',
+            'logs/**',
+            /* what a Playwright run writes: traces, screenshots and the HTML report's own bundles */
+            'test-results/**',
+            'playwright-report/**',
+            'tests/e2e/.storage/**',
+            /* the PDF corpus, plus multer's staging directory */
+            'storage/**',
+            /*
+             * Vendored third-party bundles (bootstrap and htmx from `npm run
+             * vendor`, pdf.js from `npm run vendor:pdfjs`), installed
+             * unmodified on purpose: never lint or --fix these.
+             */
+            'public/libs/**'
+        ]
+    },
+    js.configs.recommended,
+    {
+        languageOptions: {
+            ecmaVersion: 2023,
+            sourceType: 'commonjs',
+            globals: {
+                ...globals.node
+            }
+        },
+        rules: {
+            'no-unused-vars': ['warn', {argsIgnorePattern: '^_', varsIgnorePattern: '^_'}],
+            'no-console': 'off',
+            'no-process-exit': 'off',
+            eqeqeq: ['error', 'always'],
+            'prefer-const': 'error',
+            'no-var': 'error',
+            /* CLAUDE.md: narrative comments are /* *\/ starred blocks */
+            'multiline-comment-style': ['error', 'starred-block']
+        }
+    },
+    {
+        /*
+         * end-to-end specs and their harness: Node code, but the callbacks
+         * they hand to page.evaluate() run in the browser
+         */
+        files: ['tests/e2e/**/*.js', 'playwright.config.js'],
+        languageOptions: {
+            globals: {
+                ...globals.node,
+                ...globals.browser
+            }
+        }
+    },
+    {
+        /* browser-side assets, served as static files to the dashboard */
+        files: ['public/assets/js/**/*.js'],
+        languageOptions: {
+            ecmaVersion: 2020,
+            sourceType: 'script',
+            globals: {
+                ...globals.browser,
+                /* vendored globals these scripts drive */
+                htmx: 'readonly',
+                bootstrap: 'readonly'
+            }
+        }
+    }
+];
