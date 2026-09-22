@@ -29,9 +29,7 @@
  * where the PDF comes from, where the worker and font/cmap/wasm assets live -
  * is set at runtime from public/assets/js/pdf-viewer-config.js via the
  * viewer's own `webviewerloaded` hook, and the page markup lives in
- * views/viewer.ejs. That is deliberate: v1 and v2.0 hand-patched constants
- * inside the bundle, which is why a 2021 build with known CVEs survived five
- * years of upgrades. Nothing here needs re-patching - re-run this script.
+ * views/viewer.ejs. Nothing here needs re-patching - re-run this script.
  *
  * After upgrading, diff the release's web/viewer.html against views/viewer.ejs;
  * the viewer only wires up element IDs that exist, so new toolbar features

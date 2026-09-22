@@ -18,19 +18,13 @@
 
 /*
  * Where a request came from, as the browser reports it - the check behind
- * every state change: sign-out, and every dashboard action.
+ * every state change (sign-out, every dashboard action), the second lock
+ * beside the session cookie's SameSite=Lax.
  *
- * The session cookie is SameSite=Lax, which already keeps it off cross-site
- * POSTs. This is the second lock, so the defence does not rest on one cookie
- * attribute: a future SameSite=None, or a browser quirk, would still meet it.
- *
- * Sec-Fetch-Site names the origin outright (same-origin for our own page,
- * cross-site for anyone else's, none for a typed address). A browser without
- * it sends Origin on every form POST and fetch, compared to the host we were
- * reached at - X-Forwarded-Host when the proxy sets it, the Host header
- * otherwise; a proxy that passes neither breaks only this fallback, and only
- * for browsers old enough to lack Sec-Fetch-Site. A request with neither
- * header is not a browser page's doing, and a cross-site attack needs one.
+ * Sec-Fetch-Site decides when present: same-origin and none pass. Without
+ * it, Origin is compared to the host we were reached at - X-Forwarded-Host
+ * when the proxy sets it, the Host header otherwise. A request with neither
+ * header is not a browser page's doing and may proceed.
  */
 
 /**

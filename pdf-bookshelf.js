@@ -23,11 +23,7 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 const CONFIG = require('./config/config');
 const LOGGER = require('./libs/log4');
 
-/*
- * Before anything binds a port: refuse to start on a configuration that would
- * otherwise fail later and silently - an unset TOKEN_SECRET used to boot
- * cleanly and pass /healthcheck, then break every sign-in.
- */
+/* before anything binds a port: refuse a configuration that would fail later and silently */
 require('./config/validate').enforce(CONFIG, LOGGER.module());
 
 /* logs "running at ..." once the port is actually bound, or one line and exit 1 if it cannot be */

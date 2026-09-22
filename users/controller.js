@@ -52,9 +52,7 @@ function is_self_demotion(actor, target_id, requested_role) {
  * Answers a row-shaped failure; the users table has six columns. A refusal
  * the model raised (validation, conflict, not found) is shown as it is;
  * anything else is logged and replaced by the fallback, so a database error
- * never reaches the screen. Rendered through a view so the text is escaped on
- * the way out - this used to interpolate error.message into a template
- * literal, safe only while every message was a static string.
+ * never reaches the screen. Rendered through a view so the text is escaped.
  * @param res
  * @param error
  * @param fallback shown in place of an unexpected error's own message
@@ -138,12 +136,7 @@ exports.update_user = async function (req, res) {
 
     try {
 
-        /*
-         * Mirrors the self-deactivation refusal below. Dropping your own admin
-         * role is one click away in the edit form and only another admin can
-         * give it back; the model's last-admin guard is the hard safety net,
-         * this is the friendlier stop well before it.
-         */
+        /* your own admin role is not yours to drop; the model's last-admin guard is the hard safety net */
         if (is_self_demotion(req.user, parseInt(req.params.id, 10) || 0, String(req.body.role || '').trim())) {
             throw new ValidationError('You cannot remove your own administrator role. Ask another administrator to change it.');
         }
@@ -157,7 +150,7 @@ exports.update_user = async function (req, res) {
 };
 
 /**
- * DELETE /dashboard/users/:id - soft delete; PATCH reactivates
+ * DELETE /dashboard/users/:id - soft delete; POST /:id/reactivate undoes it
  */
 exports.deactivate_user = async function (req, res) {
 

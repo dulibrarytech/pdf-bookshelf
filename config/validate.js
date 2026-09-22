@@ -17,24 +17,11 @@
 'use strict';
 
 /*
- * Boot-time configuration checks.
- *
- * The failure this exists to prevent: with TOKEN_SECRET unset the app starts
- * cleanly, renders pages and passes /healthcheck - which only pings the
- * database - and then fails every single sign-in with a generic
- * "Authentication failed.", logged as `rejected:error`. The actual cause
- * appears nowhere. Anything whose absence breaks the app only later, and
- * quietly, belongs here instead: the process refuses to start and says
- * exactly what is wrong.
- *
- * Problems are collected rather than thrown one at a time, so someone fixing
- * a deployment sees every missing value in one pass instead of discovering
- * the next one on each restart.
- *
- * Fatal vs warning: fatal means the app cannot do its job at all. A value
- * that is merely weak or limits one feature warns and lets the app run -
- * refusing to boot over a judgement call would strand a working deployment
- * on an upgrade.
+ * Boot-time configuration checks: anything whose absence would break the app
+ * later and quietly is refused before the port binds, with its cause named.
+ * Problems are collected rather than thrown one at a time. Fatal means the
+ * app cannot do its job at all; a value that is merely weak, or limits one
+ * feature, warns and lets the app run.
  */
 
 const FS = require('node:fs');
@@ -137,8 +124,7 @@ function session_seconds(expires) {
 /**
  * True when Express would accept the value as its trust-proxy setting: a
  * boolean, a hop count, or a comma-separated list of keywords, IP addresses
- * and CIDR ranges. Anything else makes app.set() throw a bare stack trace at
- * boot, which is the failure this replaces with a named message.
+ * and CIDR ranges. Anything else makes app.set() throw.
  * @param value config.trust_proxy
  */
 function valid_trust_proxy(value) {
@@ -200,12 +186,7 @@ exports.inspect = function (config, directory_exists = is_directory, file_exists
         fatal.push(`TOKEN_ALGO "${config.token_algo}" is not supported. Use one of: ${TOKEN_ALGOS.join(', ')}.`);
     }
 
-    /*
-     * A session length jsonwebtoken cannot use fails every sign-in with a
-     * generic error - the same silent failure TOKEN_SECRET used to have. The
-     * sharp edge is a bare number: jsonwebtoken reads "3600" as milliseconds,
-     * a three-second session, which is a sign-in loop.
-     */
+    /* a session length jsonwebtoken cannot use fails every sign-in; a bare number is read as milliseconds */
     const expires = config.token_expires;
     const seconds = session_seconds(expires);
 
@@ -241,12 +222,10 @@ exports.inspect = function (config, directory_exists = is_directory, file_exists
     }
 
     /*
-     * The dashboard's own CSS and JS are copied from node_modules into
-     * public/libs by scripts/vendor-assets.js - npm's postinstall hook, or
-     * `npm run vendor` by hand. public/libs is not in git, so a checkout where
-     * that step was skipped (a deploy with --ignore-scripts, or a copy of the
-     * tree without it) would serve the dashboard unstyled and inert, with
-     * nothing naming the cause. Source maps are not load-bearing.
+     * public/libs is copied from node_modules by scripts/vendor-assets.js
+     * (npm's postinstall hook, or `npm run vendor`) and is not in git; a
+     * checkout that skipped the step would serve the dashboard unstyled.
+     * Source maps are not load-bearing.
      */
     const missing_assets = ASSETS
         .map(([, destination]) => destination)
@@ -303,14 +282,9 @@ exports.inspect = function (config, directory_exists = is_directory, file_exists
     }
 
     /*
-     * Say out loud which SSO verification layers are inactive.
-     *
-     * Both are built and tested but default off, because the DU authproxy does
-     * not sign its callbacks yet - a deliberate, coordinated position, not a
-     * defect to fix here. What WAS a defect is that nothing said so: the app
-     * booted silently and you had to read config to learn that identity is
-     * whatever the callback POSTs. These are warnings, never fatal, precisely
-     * because this is the intended posture today.
+     * Say which SSO verification layers are inactive. Warnings, never fatal:
+     * both default off because the DU authproxy does not sign its callbacks
+     * yet, a position coordinated with DU IT.
      */
     if (!config.sso_require_hmac) {
 
@@ -322,11 +296,8 @@ exports.inspect = function (config, directory_exists = is_directory, file_exists
     /*
      * Freshness follows the signature (auth/controller.js): with HMAC on the
      * timestamp and nonce are always checked, whatever SSO_REQUIRE_FRESHNESS
-     * says, because the signature covers them precisely so a captured
-     * callback cannot be replayed. So the flag set to off beside HMAC on is a
-     * contradiction worth naming - the config says one thing and the app
-     * does another - and "not checked for freshness" is only true with both
-     * off.
+     * says, so the flag off beside HMAC on is a contradiction worth naming;
+     * "not checked for freshness" is only true with both off.
      */
     if (config.sso_require_hmac && !config.sso_require_freshness) {
         warnings.push('SSO_REQUIRE_FRESHNESS is off but SSO_REQUIRE_HMAC is on: a signed callback is always checked for freshness (the signature covers the timestamp and nonce so a captured callback cannot be replayed), so the flag is ignored. Set it to 1, or remove it.');
@@ -345,12 +316,9 @@ exports.inspect = function (config, directory_exists = is_directory, file_exists
 
     /*
      * NODE_ENV=production is what marks the session cookie Secure, compresses
-     * responses and caches compiled templates; .env-example ships
-     * "development". A deployment that keeps it - the obvious mistake, since
-     * nothing else breaks - serves a cookie any plain-http hop could read. A
-     * warning, never fatal: a development machine reachable by name is
-     * legitimate, and a dev environment used as a viewer is not for us to
-     * refuse.
+     * responses and caches compiled templates; a deployment that keeps
+     * "development" serves a cookie any plain-http hop could read. A warning,
+     * never fatal: a development machine reachable by name is legitimate.
      */
     const sign = config.node_env === 'production' ? null : deployed_sign(config);
 
@@ -362,10 +330,8 @@ exports.inspect = function (config, directory_exists = is_directory, file_exists
 };
 
 /**
- * One line for a server that could not start listening. A port already in
- * use, or one this user may not bind, used to surface as an unhandled
- * 'error' event on the HTTP server: a raw stack trace with the cause buried
- * in it, after the boot log had already claimed the app was running.
+ * One line for a server that could not start listening: a port already in
+ * use, one this user may not bind, or the error code.
  * @param error the 'error' event's error
  * @param port what the app tried to listen on
  */
@@ -402,9 +368,7 @@ exports.enforce = function (config, logger) {
 
     /*
      * console.error, not the logger: log4js buffers its file appender and
-     * process.exit does not wait for the flush, so a logged message can be
-     * lost precisely when it matters most. stderr is also where an operator
-     * looks when a service refuses to start.
+     * process.exit does not wait for the flush.
      */
     const count = fatal.length === 1 ? '1 configuration problem' : `${fatal.length} configuration problems`;
 

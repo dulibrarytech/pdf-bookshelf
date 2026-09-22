@@ -85,10 +85,8 @@ exports.get = async function (id) {
 /**
  * Turns the database's refusal of a second row for a DU ID into the answer
  * the pre-check gives. The unique index on du_id (migration 20260921000003)
- * is what actually keeps one row per person; the SELECT in create() only
- * spares the common case a round trip to a failing INSERT. Two administrators
- * adding the same DU ID in the same instant both pass that check, and the
- * second INSERT then fails on the index - a 409 for them, not a 500.
+ * is what keeps one row per person; the SELECT in create() only spares the
+ * common case a round trip to a failing INSERT.
  * @param error thrown by the INSERT
  * @returns {Error} a ConflictError for a duplicate key, otherwise the error as given
  */
@@ -132,15 +130,10 @@ function is_last_active_admin(id, active_admin_ids) {
 }
 
 /**
- * Refuses a change that would leave the app with no active administrator.
- *
- * There is no in-app way back from that: the Users and Utilities screens are
- * admin-gated, so recovering means editing tbl_users by hand. Runs inside the
- * caller's transaction and locks every active admin row, so two admins
- * demoting each other at the same moment cannot both read "someone else is
- * still an admin" and both commit. Rows are locked in id order - one query,
- * one order, so concurrent guards queue instead of deadlocking.
- *
+ * Refuses a change that would leave the app with no active administrator -
+ * there is no in-app way back from that. Runs inside the caller's
+ * transaction and locks every active admin row, in id order, so concurrent
+ * guards queue rather than deadlock, and cannot both commit.
  * @param trx
  * @param id the user being changed
  * @param action wording for the message
@@ -184,7 +177,7 @@ exports.update = async function (id, body) {
 };
 
 /**
- * Soft delete / reactivate (v1 hard-deleted rows)
+ * Soft delete / reactivate
  * @param id
  * @param active
  */

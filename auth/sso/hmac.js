@@ -17,8 +17,7 @@
 'use strict';
 
 /*
- * HMAC-SHA256 signature verification for the SSO callback (shared DU IT
- * spec - same wiring as repo-backend-v2).
+ * HMAC-SHA256 signature verification for the SSO callback (shared DU IT spec).
  *
  * The upstream identity proxy computes:
  *     signature = hex( HMAC-SHA256(employeeID + '|' + timestamp + '|' + nonce, secret) )

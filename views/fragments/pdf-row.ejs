@@ -1,9 +1,7 @@
 <%
-/* A removed record is kept (soft delete) so it can be restored. It renders
-   muted with Restore as its only action - the viewer, the catalogued URL and
-   title editing all refuse an inactive record, so those links would only
-   404. Records fetched by uuid carry is_active too; a row without the field
-   (an older caller) counts as active. */
+/* A removed record (soft delete) renders muted with Restore as its only
+   action: the viewer, the catalogued URL and title editing all refuse an
+   inactive record. A row without an is_active field counts as active. */
 const is_removed = Number(row.is_active) === 0;
 const is_admin = user && user.role === 'admin';
 const label = row.title || row.filename;

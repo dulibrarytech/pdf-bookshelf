@@ -17,8 +17,7 @@
 'use strict';
 
 /*
- * Storage <-> database reconciliation. Replaces v1's /reload, which
- * batch-inserted every file on every run and doubled tbl_data.
+ * Storage <-> database reconciliation.
  *
  * Upserts by filename (the storage key) and reports every direction: files
  * without rows (added), rows whose file is gone (missing), files it will not
@@ -52,14 +51,11 @@ function sha256_file(path) {
 /**
  * Reads the PDFs actually present in a storage directory.
  *
- * Only a file ending in exactly ".pdf" is catalogued. Delivery reconstructs
+ * Only a file ending in exactly ".pdf" is catalogued: delivery reconstructs
  * the path as `<filename>.pdf` (pdfs/controller.js), so "Minutes.PDF" would
- * become a record that a case-sensitive server can never serve - and the next
- * re-sync would report it healthy. Such files are reported as skipped, with
- * the fix, instead of becoming a row that 404s.
- *
- * Subdirectories and dotfiles (multer's .tmp staging, .gitkeep) are
- * infrastructure and are passed over silently.
+ * become a record a case-sensitive server can never serve. Such files are
+ * reported as skipped, with the fix. Subdirectories and dotfiles (multer's
+ * .tmp staging, .gitkeep) are passed over silently.
  *
  * @param dir absolute path
  * @returns {Promise<{files: Map, skipped: object[]}>} files: storage filename
@@ -109,9 +105,8 @@ function plan(files, rows) {
     /*
      * tbl_pdfs compares filenames case-insensitively (utf8mb4_unicode_ci), so
      * "Minutes" and "minutes" are one key to the unique index even though they
-     * are two different files to a Linux filesystem. Catch the collision here,
-     * with a message that names the fix, rather than letting the INSERT fail
-     * on it.
+     * are two files to a Linux filesystem: report the collision, with the fix,
+     * rather than let the INSERT fail on it.
      */
     const by_folded = new Map(rows.map((row) => [row.filename.toLowerCase(), row]));
     const add = [];
@@ -174,10 +169,8 @@ function describe_failure(error) {
 }
 
 /**
- * Applies a plan one entry at a time. A single bad entry is reported under
- * `failed` and the rest still land; before this, one failed INSERT threw out
- * of the loop with everything before it already committed and only
- * "Re-sync failed." to show for it.
+ * Applies a plan one entry at a time: a bad entry is reported under `failed`
+ * and the rest still land.
  * @param storage absolute storage path
  * @param planned from plan()
  * @param ops {insert(row), update(id, fields)} the database writes, injected
@@ -269,12 +262,8 @@ async function perform(job) {
 }
 
 /*
- * The run in progress, or the last one. One at a time: the work used to run
- * inside the request that asked for it, with no guard against two
- * administrators starting it at once - their inserts raced on the filename
- * index - and a runtime that grew with the corpus (every unhashed file is
- * read in full) until it outlived the proxy's patience. Now the request
- * starts a job and returns; the page watches it. Single-instance app, so an
+ * The run in progress, or the last one - one at a time: the request starts
+ * a job and returns, and the page watches it. Single-instance app, so an
  * in-process record is the whole story.
  */
 let job = null;

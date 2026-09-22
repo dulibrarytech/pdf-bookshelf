@@ -37,7 +37,7 @@ const UPLOAD = MULTER({
     }),
     fileFilter: function (req, file, callback) {
 
-        /* v1's filter fell through to accept - note the returns */
+        /* both the extension and the mimetype must say PDF */
         if (!/\.pdf$/i.test(file.originalname) || file.mimetype !== 'application/pdf') {
 
             /* surfaced in the result fragment instead of vanishing silently */

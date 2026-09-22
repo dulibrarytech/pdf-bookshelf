@@ -48,8 +48,8 @@ exports.get_by_filename = function (filename) {
 };
 
 /**
- * Atomically bumps the hit counter (v1 read-then-wrote and lost updates)
- * Fire-and-forget: delivery never waits on, or fails because of, the counter.
+ * Atomically bumps the hit counter. Fire-and-forget: delivery never waits
+ * on, or fails because of, the counter.
  * @param id
  */
 exports.increment_hits = function (id) {
@@ -84,24 +84,21 @@ function normalize_list_options(options = {}) {
 }
 
 /**
- * Lists records for the bookshelf table - active ones, or all of them when
- * `removed` is set
- * @param options {q, sort, dir, page, removed}
- * @returns {Promise<{rows, page, page_count, total, q, sort, dir, removed}>}
- */
-/**
- * A LIKE pattern that matches the term literally. `%` and `_` are wildcards
- * to LIKE, so a search for "_" matched every record and one for "du_mrp" let
- * the underscore stand for any character - and the filenames here are full
- * of underscores. The backslash is the escape character, declared with
- * ESCAPE at the query so the session's sql_mode cannot change it, and is
- * escaped itself.
+ * A LIKE pattern that matches the term literally: `%` and `_` are escaped
+ * with a backslash - declared with ESCAPE at the query, so the session's
+ * sql_mode cannot change it - and the backslash itself is escaped.
  * @param term the trimmed search term
  */
 function like_pattern(term) {
     return '%' + term.replace(/[\\%_]/g, (character) => '\\' + character) + '%';
 }
 
+/**
+ * Lists records for the bookshelf table - active ones, or all of them when
+ * `removed` is set
+ * @param options {q, sort, dir, page, removed}
+ * @returns {Promise<{rows, page, page_count, total, q, sort, dir, removed}>}
+ */
 exports.list = async function (options = {}) {
 
     const { q, sort, dir, page, removed } = normalize_list_options(options);

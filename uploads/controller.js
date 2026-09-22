@@ -17,16 +17,15 @@
 'use strict';
 
 /*
- * Upload flow (v1's POST /uploads had NO auth and a broken file filter):
+ * Upload flow:
  *   1. multer stages each file into storage/.tmp under a random name
  *   2. per file: sha256, sanitized final name, DB uniqueness check
  *   3. publish into storage/ exclusively + insert row; a name already taken
  *      on disk or in the database is reported per file and never overwritten
  *
- * One deliberate exception to "never": a name that belongs to a REMOVED
- * record whose file is gone from storage is revived - the upload becomes that
- * record's file again, so its uuid and every catalogued link keep working
- * instead of the name being retired forever.
+ * One exception: a name that belongs to a removed record whose file is gone
+ * from storage revives that record, so its uuid and every catalogued link
+ * keep working.
  */
 
 const FS = require('node:fs');
@@ -75,9 +74,8 @@ function sanitize_filename(original) {
 
 /**
  * Why a sanitized storage key cannot be used, or null when it can. Measured
- * in bytes, as the filesystem does: a name of 200 accented characters is 400
- * bytes of UTF-8, which is ENAMETOOLONG on Linux however few characters it
- * has - the old check counted characters and let it through.
+ * in bytes, as the filesystem does: 200 accented characters are 400 bytes of
+ * UTF-8, ENAMETOOLONG on Linux however few characters they are.
  * @param filename the sanitized key, without the extension
  * @returns {string|null} a message for the upload results, or null
  */
@@ -99,10 +97,8 @@ function filename_problem(filename) {
 /**
  * The display title an upload starts with: the original name minus its
  * extension, trimmed and capped to what the column holds - the shape the
- * dashboard's title editor produces. Before this the untrimmed, uncapped
- * name went straight to the INSERT, which a long name failed with a raw
- * database message on screen after the file had been published and
- * unpublished again. Falls back to the storage key when nothing is left.
+ * dashboard's title editor produces. Falls back to the storage key when
+ * nothing is left.
  * @param original the name as uploaded
  * @param filename the sanitized storage key
  */

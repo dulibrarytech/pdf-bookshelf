@@ -17,9 +17,9 @@
 'use strict';
 
 /*
- * Drag-and-drop upload (v1 parity, minus the Dropzone dependency - CSP
- * self-only). The dropzone feeds the hidden <input type=file> that the
- * HTMX multipart form posts; byte-level progress rides htmx:xhr:progress.
+ * Drag-and-drop upload without a library (CSP self-only). The dropzone feeds
+ * the hidden <input type=file> that the HTMX multipart form posts;
+ * byte-level progress rides htmx:xhr:progress.
  */
 
 (function () {

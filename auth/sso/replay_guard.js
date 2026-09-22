@@ -28,8 +28,8 @@
  *   - uniqueness -> catches replays inside the freshness window
  *
  * The seen-nonce store is an in-process Map pruned on each check; entries
- * expire after 2x the skew window so it can never grow past the number of
- * sign-ins inside that window (single-instance app - no Redis needed).
+ * expire after 2x the skew window, so it never grows past the number of
+ * sign-ins inside that window.
  */
 
 const { UnauthorizedError, ValidationError } = require('../../libs/errors');

@@ -35,12 +35,9 @@ module.exports = function (app) {
         .get(CONTROLLER.healthcheck);
 
     /*
-     * At the domain root, the only place a crawler reads it (it used to sit
-     * under APP_PATH, where nothing ever asked for it). The app already owns
-     * root-level paths on its host - the bare hostname and the legacy
-     * catalogue links - so nginx passes this one through as well. Every
-     * response also carries X-Robots-Tag (config/express.js), which holds
-     * even where a proxy does not.
+     * At the domain root, the only place a crawler reads it; nginx passes it
+     * through like the app's other root-level paths. Every response also
+     * carries X-Robots-Tag (config/express.js).
      */
     app.get('/robots.txt', function (req, res) {
         res.type('text/plain');

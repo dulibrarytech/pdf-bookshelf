@@ -17,18 +17,11 @@
 'use strict';
 
 /*
- * Answers a refusal - 401, 403, 429, 500 - in a shape the caller can use.
- *
- * Most refusals fire on htmx fragment calls: a kebab-menu action targeting
- * `closest tr`, or the upload form. Rendering the full-page error template at
- * them put an entire <!doctype html> document inside a table row. A refusal
- * is not row content, so htmx gets no body at all: HX-Reswap none leaves the
- * page untouched, and the message rides an HX-Trigger event that app.js turns
- * into a toast, so the action still visibly fails instead of doing nothing.
- *
- * A browser navigation gets the error page - optionally with a way forward -
- * and anything else gets JSON. Shared by the auth guards and the rate limiter
- * so every refusal in the app has the same three shapes.
+ * Answers a refusal - 401, 403, 429, 500 - in the caller's shape. An htmx
+ * request gets no body: HX-Reswap none leaves the page untouched and the
+ * message rides an HX-Trigger event that app.js turns into a toast. A
+ * browser navigation gets the error page, optionally with a way forward.
+ * Anything else gets JSON. Shared by the auth guards and the rate limiter.
  */
 
 /**

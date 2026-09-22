@@ -17,8 +17,7 @@
 'use strict';
 
 /*
- * Server-side display formatting (v1 shipped moment.js + DataTables to the
- * client for this; Intl covers it in-process).
+ * Server-side display formatting with Intl.
  */
 
 const DATE_FORMAT = new Intl.DateTimeFormat('en-US', {

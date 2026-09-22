@@ -39,9 +39,7 @@ exports.get_utils_page = function (req, res) {
 /**
  * POST /dashboard/utils/resync - starts a reconciliation in the background,
  * or joins the one running, and answers with the progress fragment that
- * polls for the report. The work used to run inside this request: no guard
- * against two administrators starting it at once, and a runtime that grew
- * with the corpus until it outlived the proxy's patience.
+ * polls for the report
  */
 exports.resync = function (req, res) {
 

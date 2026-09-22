@@ -17,22 +17,12 @@
 'use strict';
 
 /*
- * Minimal fixed-window in-memory rate limiter (single-instance app).
- * Applied to the auth callback and upload endpoints - v1 had no limits
- * anywhere (see the exhibits rate-limit review for the pattern).
- *
- * Keyed by req.ip, which is only as right as the app's trust-proxy setting
- * (config/express.js): trust the wrong hop and every user behind nginx shares
- * one bucket. And DU users share addresses anyway - campus NAT and the VPN put
- * a whole class behind one - so a ceiling has to be sized for a room signing
- * in at once, not for one person. This is abuse throttling, not a security
- * control.
- *
- * A refusal answers in the caller's shape (libs/refuse.js): an htmx action
- * gets headers and a toast, a browser gets the error page - with a way
- * forward when the caller supplies one - and anything else gets JSON. It used
- * to be JSON for everyone, which put a bare {"message":...} on screen as the
- * whole page after a student had already signed in at the identity provider.
+ * Minimal fixed-window in-memory rate limiter (single-instance app), on the
+ * auth callback and upload endpoints. Keyed by req.ip, which is only as right
+ * as the trust-proxy setting in config/express.js. Abuse throttling, not a
+ * security control: DU users share campus addresses, so a ceiling is sized
+ * for a room signing in at once. A refusal answers in the caller's shape
+ * (libs/refuse.js), with a way forward when the caller supplies one.
  */
 
 const { refuse } = require('./refuse');

@@ -17,13 +17,12 @@
 'use strict';
 
 /*
- * Route guards. Two access tiers (mirrors v1 behavior, minus its holes):
+ * Route guards. Two access tiers:
  *   - viewer:    any SSO-verified DU person - a valid session cookie is enough
  *   - dashboard: viewer + an active tbl_users row; role checked per request
  *
- * The user row is looked up DB-fresh on every dashboard request (same policy
- * as repo-backend-v2 RBAC) so deactivation/role changes bite immediately
- * instead of at token expiry.
+ * The user row is looked up DB-fresh on every dashboard request, so a
+ * deactivation or role change bites immediately, not at token expiry.
  */
 
 const CONFIG = require('../config/config');
@@ -38,13 +37,9 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 /**
  * True when the client is a browser navigating - the one caller a redirect to
- * sign-in helps. A page's own fetch() or XHR carries the same cookie but
- * cannot follow that redirect: it ends at the identity provider, another
- * origin, so the fetch dies as a CORS failure and pdf.js showed "an error
- * occurred" for a session that expired while the viewer was open. Browsers
+ * sign-in helps (a fetch cannot follow it to the identity provider). Browsers
  * mark a navigation with Sec-Fetch-Mode: navigate; a client without the
- * header is told apart by whether it asked for HTML by name (a navigation's
- * Accept lists text/html; fetch's default accepts anything).
+ * header is told apart by whether it asked for HTML by name.
  * @param req
  */
 function is_navigation(req) {
@@ -90,16 +85,11 @@ function deny(req, res) {
 }
 
 /*
- * 403 and 500 answer through libs/refuse.js, in the caller's shape - the same
- * helper the rate limiter uses, so every refusal in the app looks the same.
- */
-
-/*
- * The guards below are named functions carrying `tier`/`roles` metadata. That
- * makes the protection on each route readable from the router stack, so the
- * inventory test in tests/integration/rbac_routes.test.js can assert what
- * guards which route rather than inferring it - a new route added without a
- * guard fails the build instead of shipping open.
+ * 403 and 500 answer through libs/refuse.js, in the caller's shape.
+ *
+ * The guards are named functions carrying `tier`/`roles` metadata: the
+ * inventory test in tests/integration/rbac_routes.test.js reads the
+ * protection on each route off the router stack. Keep both.
  */
 
 /**
@@ -151,12 +141,7 @@ exports.require_dashboard = function (...roles) {
                 return;
             }
 
-            /*
-             * Every dashboard change must come from the dashboard: a second
-             * lock beside the cookie's SameSite=Lax, so the CSRF defence does
-             * not rest on one cookie attribute. Before the database lookup -
-             * a refused request costs nothing.
-             */
+            /* a state change must come from the dashboard (the second lock beside SameSite=Lax); before the database lookup */
             if (!SAFE_METHODS.has(req.method) && !same_origin(req)) {
                 refuse(req, res, 403, 'This request did not come from the PDF Bookshelf page, so it was not carried out.');
                 return;

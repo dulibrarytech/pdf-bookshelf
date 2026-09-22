@@ -2,21 +2,14 @@
 
 /*
  * End-to-end suite: a real browser against the real app, which Playwright
- * boots on its own port with its own database and storage directory, so a
- * run never touches the development instance or its data.
- * tests/e2e/harness/start.js builds that environment - drops and recreates
- * the e2e database, migrates it, seeds users and PDFs, writes the PDFs into a
- * scratch storage directory - and then starts the app; harness/env.js is the
- * one place its settings live.
- *
- * The identity provider is never reached. The app is given
- * https://idp.example as SSO_URL, and every spec intercepts that origin in
- * the browser and answers as a stub which posts the callback the real proxy
- * would post (harness/app.js).
+ * boots on its own port with its own database and storage directory.
+ * tests/e2e/harness/start.js builds that environment (drops and recreates
+ * the e2e database, migrates it, seeds users and PDFs, writes the PDFs into
+ * a scratch storage directory, starts the stub identity provider) and then
+ * starts the app; harness/env.js is the one place its settings live.
  *
  * One worker, files in order: everything shares one database and one
- * storage directory, and the suite is small enough that parallel workers
- * would buy little and cost determinism.
+ * storage directory.
  */
 
 const { defineConfig, devices } = require('@playwright/test');

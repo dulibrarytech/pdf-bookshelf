@@ -25,14 +25,9 @@
     /*
      * htmx refuses to swap 4xx responses by default; our fragment endpoints
      * answer validation failures with error fragments meant for the target.
-     * The add-user form is special-cased into its message slot so a rejected
-     * submit doesn't wipe the form.
-     *
-     * 401, 403 and 429 are the exception: those come from the auth middleware
-     * and the rate limiter, which drive them with response headers
-     * (HX-Redirect, HX-Reswap none, HX-Trigger) and send no body. Forcing a
-     * swap on them used to put the full-page error template inside a table
-     * row, and raced the login redirect.
+     * 401, 403 and 429 are the exception: the auth middleware and the rate
+     * limiter drive those with response headers (HX-Redirect, HX-Reswap
+     * none, HX-Trigger) and send no body.
      */
     document.body.addEventListener('htmx:beforeSwap', function (event) {
 
@@ -46,7 +41,7 @@
         event.detail.isError = false;
     });
 
-    /* sidebar icon-rail tooltips (Bootstrap; same treatment as repov2) */
+    /* sidebar icon-rail tooltips (Bootstrap) */
     document.addEventListener('DOMContentLoaded', function () {
 
         if (window.bootstrap === undefined) {
@@ -89,10 +84,7 @@
             return;
         }
 
-        /*
-         * actions live in a kebab menu now - focus its toggle (falls back to
-         * the first button for rows without one, e.g. future layouts)
-         */
+        /* focus the row's menu toggle, or its first button */
         const target = row.querySelector('.kebab-btn') || row.querySelector('button');
 
         if (target !== null) {
@@ -120,14 +112,10 @@
     });
 
     /*
-     * Copy-to-clipboard for cataloged PDF URLs (v1 parity). Buttons carry
-     * data-copy-url (a root-relative path - the copied link uses the origin
-     * staff are browsing, so dev copies dev and prod copies prod). Delegated
-     * so it survives htmx row swaps.
-     *
-     * Feedback is twofold (WCAG): the button label changes to "Copied" for a
-     * few seconds (visible, not color-only), and the #copy-status live region
-     * announces the outcome for screen readers.
+     * Copy-to-clipboard for catalogued PDF URLs. Buttons carry data-copy-url,
+     * a root-relative path, so the copied link uses the origin staff are
+     * browsing. Delegated so it survives htmx row swaps. Feedback is twofold
+     * (WCAG): the toast is visible, the #copy-status live region is spoken.
      */
     function fallback_copy(text) {
 

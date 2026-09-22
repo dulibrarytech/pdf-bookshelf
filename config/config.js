@@ -80,11 +80,10 @@ module.exports = Object.freeze({
     sso_hmac_secret: process.env.SSO_HMAC_SECRET,
     sso_hmac_secret_next: process.env.SSO_HMAC_SECRET_NEXT,
     /*
-     * Sign-in callbacks accepted per client address per minute. DU users
-     * arrive behind campus NAT and VPN egress addresses, so this has to
-     * absorb a whole class signing in at once; it is abuse throttling, not a
-     * security control. Kept as given (not coerced to a default) so that a
-     * typo is refused at boot rather than silently becoming 300.
+     * Sign-in callbacks accepted per client address per minute; sized for a
+     * whole class behind one campus address (abuse throttling, not a security
+     * control). Kept as given, so a typo is refused at boot rather than
+     * silently becoming 300.
      */
     sso_rate_limit_per_minute: is_set(process.env.SSO_RATE_LIMIT_PER_MINUTE) ? Number(process.env.SSO_RATE_LIMIT_PER_MINUTE) : 300,
     /*

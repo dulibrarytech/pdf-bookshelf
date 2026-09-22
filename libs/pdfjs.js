@@ -18,16 +18,9 @@
 
 /*
  * The version of the vendored pdf.js bundle, used to key the viewer's URLs
- * (?v=) so a browser cannot serve a day-old bundle after an upgrade.
- *
- * The static middleware caches for a day in production, and pdf.js hard-fails
- * when its API and worker versions disagree. Keyed to the version, an upgrade
- * - a security one, especially - reaches a returning browser on its next
- * visit rather than after the old files age out of its cache. Read from the
- * build itself: every file in the release bundle carries `pdfjsVersion =
- * X.Y.Z` in its header, so nothing has to be bumped by hand. Falls back to a
- * content hash of pdf.mjs should a future build drop the marker - that still
- * busts correctly, just less readably.
+ * (?v=) so an upgrade reaches a returning browser at once. Read from the
+ * bundle's own `pdfjsVersion = X.Y.Z` marker, so nothing is bumped by hand;
+ * falls back to a content hash of pdf.mjs should a build drop the marker.
  */
 
 const FS = require('node:fs');

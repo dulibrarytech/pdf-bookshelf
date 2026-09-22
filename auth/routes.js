@@ -23,17 +23,9 @@ const RATE_LIMIT = require('../libs/rate_limit');
 module.exports = function (app) {
 
     /*
-     * The bare hostname, and the app's own root. Nothing lives at the domain
-     * root - the app is mounted under APP_PATH - so someone typing
-     * https://<host>/ used to get the 404 page and no way in; and
-     * https://<host>/APP_PATH answered, to anyone at all, a JSON line naming
-     * the app and its version - inherited from v1, with no consumer, and a
-     * version disclosure. Both send the browser into sign-in instead: /login
-     * routes each tier correctly afterwards (dashboard users to the
-     * bookshelf, everyone else to the signed-in page), which a redirect
-     * straight to the dashboard would not. 302, not 301: neither path is
-     * permanently anything, and a cached 301 would outlive a change of mind.
-     * Monitoring has /healthcheck.
+     * The bare hostname and the app's own root go into sign-in; /login routes
+     * each tier afterwards. 302, not 301, so a cached redirect cannot outlive
+     * a change of mind. Monitoring has /healthcheck.
      */
     const into_sign_in = function (req, res) {
         res.redirect(302, CONFIG.app_path + '/login');
@@ -46,12 +38,9 @@ module.exports = function (app) {
         .get(CONTROLLER.sso_start);
 
     /*
-     * Per client address per minute, and DU users share addresses - campus
-     * NAT and the VPN put a whole class behind one - so the ceiling is sized
-     * for a room signing in at once (SSO_RATE_LIMIT_PER_MINUTE, default 300),
-     * not for one person; 30 refused the tail of any lecture told to open a
-     * PDF. A refused browser gets the error page with a "Try again" that goes
-     * back through /login, keeping the page it was heading for.
+     * Per client address per minute, sized for a room signing in behind one
+     * campus address (SSO_RATE_LIMIT_PER_MINUTE, default 300). A refused
+     * browser gets the error page with a "Try again" back through /login.
      */
     app.route(CONFIG.app_path + '/sso')
         .post(RATE_LIMIT({

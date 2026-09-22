@@ -25,20 +25,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 /**
  * True when a request represents somebody opening the document, rather than
- * one of the ranged follow-ups a PDF reader makes for that same view.
- *
- * A reader fetches a document in several HTTP requests: one with no Range
- * header for the document itself, then ranged requests for the pieces it
- * wants. Counting all of them made "Requests" track file size instead of
- * readership - measured, one view of a 12 MB document scored 4 while a 1 MB
- * document scored 2, so "Most Requested File" ranked the biggest file rather
- * than the most-read one.
- *
- * This also restores the meaning of the counts migrated from v1: v1 served
- * PDFs with a piped read stream and never advertised Accept-Ranges, so no
- * client could range-fetch and every v1 hit was one view. Counting only
- * un-ranged requests keeps the whole column on that one scale.
- *
+ * one of the ranged follow-ups a PDF reader makes for that same view. Only
+ * the un-ranged request counts, which keeps the whole "Requests" column on
+ * the one-view-per-hit scale the v1 counts were migrated on.
  * @param req
  */
 function is_document_view(req) {
@@ -105,12 +94,9 @@ exports.get_viewer = async function (req, res) {
 /**
  * GET /pdf/:id - streams the file.
  *
- * The database row IS the allowlist: unknown ids 404 before any filesystem
- * access, and sendFile's root option refuses traversal - the two v1 holes
- * (path traversal + crash on missing file) die here.
- *
- * Range requests are served (readers need them to page through a large
- * document) but only un-ranged requests count as a view - see is_document_view.
+ * The database row is the allowlist: unknown ids 404 before any filesystem
+ * access, and sendFile's root option refuses traversal. Range requests are
+ * served, but only un-ranged requests count as a view - see is_document_view.
  */
 exports.get_pdf = async function (req, res) {
 
@@ -133,9 +119,8 @@ exports.get_pdf = async function (req, res) {
 
         /*
          * Counted here rather than in the sendFile callback, which fires only
-         * on a completed transfer: a reader who opens a large document and
-         * closes the tab part-way still read it. This is also what v1 did -
-         * it bumped the counter before opening the stream.
+         * on a completed transfer: a reader who closes the tab part-way
+         * still read it.
          */
         if (is_document_view(req)) {
             MODEL.increment_hits(record.id);

@@ -17,13 +17,9 @@
 'use strict';
 
 /*
- * Ported from repo-backend-v2 so the workspace conventions are enforced the
- * same way in both apps: no var, const by default, strict equality, and
- * narrative comments as starred blocks.
- *
- * ESLint cannot parse .ejs, and these templates carry scriptlet JS. The gap is
- * covered by tests/unit/no_var_in_templates.test.js - the same split
- * repo-backend-v2 uses.
+ * Workspace conventions: no var, const by default, strict equality, and
+ * narrative comments as starred blocks. ESLint cannot parse .ejs, so the
+ * templates' scriptlet JS is covered by tests/unit/no_var_in_templates.test.js.
  */
 
 const js = require('@eslint/js');
@@ -41,10 +37,9 @@ module.exports = [
             /* the PDF corpus, plus multer's staging directory */
             'storage/**',
             /*
-             * Vendored third-party bundles: bootstrap and htmx are copied in by
-             * `npm run vendor`, pdf.js by `npm run vendor:pdfjs`. Never lint or
-             * --fix these - they are installed unmodified on purpose, which is
-             * what keeps the pdf.js upgrade a re-run of a script.
+             * Vendored third-party bundles (bootstrap and htmx from `npm run
+             * vendor`, pdf.js from `npm run vendor:pdfjs`), installed
+             * unmodified on purpose: never lint or --fix these.
              */
             'public/libs/**'
         ]

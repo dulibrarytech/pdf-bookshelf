@@ -17,14 +17,9 @@
 'use strict';
 
 /*
- * Filesystem moves that refuse to destroy an existing file.
- *
- * fs.rename silently overwrites its destination, which makes it the wrong
- * primitive for publishing an upload into storage/: the caller's uniqueness
- * check runs against tbl_pdfs, and the database cannot see a file that has
- * no row - one dropped in by hand, or one sitting there between a restore
- * and the next re-sync. link() fails with EEXIST instead of clobbering, so
- * the check and the move agree about what "already exists" means.
+ * Filesystem moves that refuse to destroy an existing file: link() fails
+ * with EEXIST where fs.rename would overwrite, so a file the database has no
+ * row for still counts as "already exists".
  */
 
 const FS = require('node:fs');
@@ -50,7 +45,7 @@ exports.move_exclusive = async function (source, destination) {
     } catch {
         /*
          * the file IS published; a stranded staging copy is not worth failing
-         * the upload over - the next .tmp sweep or restart clears it
+         * the upload over (nothing sweeps storage/.tmp - delete it by hand)
          */
     }
 };

@@ -32,9 +32,8 @@ const { describe_listen_error } = require('./validate');
 /**
  * form-action sources: this origin, plus the identity provider's when signing
  * out ends there. Chromium applies form-action to the redirect a form
- * submission is answered with, so without that origin the sign-out button's
- * 303 to SSO_LOGOUT_URL is refused and the page simply stays put - while
- * curl, Firefox and the integration suite all see the redirect go through.
+ * submission is answered with, so the sign-out button's 303 to
+ * SSO_LOGOUT_URL needs that origin allowed.
  * @param logout_url CONFIG.sso_logout_url, possibly unset
  * @returns {string[]}
  */
@@ -66,21 +65,15 @@ module.exports = function () {
     APP.locals.appversion = CONFIG.app_version;
     APP.locals.organization = CONFIG.organization;
     APP.locals.asset_v = CONFIG.asset_v;
-    /*
-     * the pdf.js bundle's own version keys the viewer's URLs, so an upgrade
-     * reaches returning browsers at once instead of after the day-long static
-     * cache ages out - see libs/pdfjs.js
-     */
+    /* the pdf.js bundle's own version keys the viewer's URLs - see libs/pdfjs.js */
     APP.locals.pdfjs_v = PDFJS.version();
     APP.set('view cache', process.env.NODE_ENV === 'production');
     APP.disable('x-powered-by');
     /*
-     * Which upstream proxies may set X-Forwarded-For. req.ip - and with it
-     * every per-address rate limit - is only as right as this: trust the
-     * wrong hop and every user behind nginx shares one bucket, so a busy
-     * class period rate-limits the whole campus. Defaults to loopback, the
-     * documented topology (nginx on this host); TRUST_PROXY names the TLS
-     * terminator when it lives elsewhere. Validated at boot.
+     * Which upstream proxies may set X-Forwarded-For; req.ip, and with it
+     * every per-address rate limit, is only as right as this. Defaults to
+     * loopback (nginx on this host); TRUST_PROXY names the TLS terminator
+     * when it lives elsewhere. Validated at boot.
      */
     APP.set('trust proxy', CONFIG.trust_proxy);
 
@@ -93,14 +86,10 @@ module.exports = function () {
             directives: {
                 defaultSrc: ["'self'"],
                 /*
-                 * NOTE the absence of 'unsafe-eval'. pdf.js feature-tests
-                 * `new Function("")` and takes a slower non-eval path when CSP
-                 * blocks it; that is the layer which made CVE-2024-4367
-                 * unexploitable here while the viewer was still on 2.8.335.
-                 * Keep it out even though the viewer is now patched.
-                 * 'wasm-unsafe-eval' permits WebAssembly ONLY - pdf.js 6 uses
-                 * it for JPEG 2000 images and ICC colour profiles - and does
-                 * not re-enable eval/Function.
+                 * Keep 'unsafe-eval' out: pdf.js feature-tests `new Function`
+                 * and takes a non-eval path when CSP blocks it.
+                 * 'wasm-unsafe-eval' permits WebAssembly only (pdf.js 6 uses
+                 * it for JPEG 2000 images and ICC colour profiles).
                  */
                 scriptSrc: ["'self'", "'wasm-unsafe-eval'"],
                 /* style ATTRIBUTES only (Bootstrap-idiomatic); scripts stay self-only */
@@ -111,12 +100,7 @@ module.exports = function () {
                 fontSrc: ["'self'", 'data:'],
                 objectSrc: ["'none'"],
                 frameAncestors: ["'self'"],
-                /*
-                 * where a form may send its data, and - in Chromium - where
-                 * the answer to a form submission may redirect: the sign-out
-                 * button's 303 to the identity provider needs its origin
-                 * here (found by the e2e suite; see form_action_sources)
-                 */
+                /* where a form may send its data and, in Chromium, where its answer may redirect - see form_action_sources */
                 formAction: form_action_sources(CONFIG.sso_logout_url),
                 /* pdf.js renders pages in workers from blob: URLs */
                 workerSrc: ["'self'", 'blob:'],
@@ -133,10 +117,8 @@ module.exports = function () {
     }));
 
     /*
-     * Nothing here is for an index: every page is behind sign-in and the
-     * PDFs are licensed. robots.txt at the domain root says so to crawlers
-     * that ask; this header says it on every answer, including to one that
-     * arrives some other way.
+     * Nothing here is for an index: robots.txt at the domain root says so to
+     * crawlers that ask, this header says it on every answer.
      */
     APP.use(function (req, res, next) {
         res.set('X-Robots-Tag', 'noindex, nofollow');
@@ -167,9 +149,7 @@ module.exports = function () {
      * Central error handler: whatever a route did not answer itself. Mapped
      * by libs/errors.describe_error() - a typed refusal or a parser's client
      * error keeps its status, anything else is a 500 with a generic line -
-     * and answered in the caller's shape, so an htmx action sees a toast
-     * rather than nothing (it used to get a full page, which htmx ignores)
-     * and a browser sees the error page. Never hangs, never leaks internals.
+     * and answered in the caller's shape. Never hangs, never leaks internals.
      */
     APP.use(function (error, req, res, next) {
 
@@ -201,7 +181,7 @@ module.exports = function () {
         process.exit(1);
     });
 
-    /* "running" only once it is: the entrypoint used to log this before the port was bound */
+    /* "running" only once the port is bound */
     SERVER.on('listening', function () {
         LOGGER.module().info(`${CONFIG.app_name} ${CONFIG.app_version} running at http://${CONFIG.app_host}:${SERVER.address().port}${CONFIG.app_path} in ${CONFIG.node_env} mode.`);
     });

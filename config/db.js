@@ -20,7 +20,7 @@ const CONFIG = require('./config');
 const KNEX = require('knex');
 
 /**
- * Single shared knex instance (v1 created a new pool per require)
+ * Single shared knex instance
  */
 const DB = KNEX({
     client: 'mysql2',

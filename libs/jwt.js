@@ -19,10 +19,9 @@
 /*
  * JWT helpers - sign/verify plus httpOnly cookie issuance/extraction.
  *
- * The session token travels ONLY in an httpOnly, SameSite=Lax cookie
- * (v1 put JWTs in ?t= query strings, which leaked via logs, history and
- * Referer headers). JS can't read the cookie and the pdf.js viewer needs
- * no token plumbing - the cookie rides along on /pdf/:uuid requests.
+ * The session token travels only in an httpOnly, SameSite=Lax cookie: JS
+ * cannot read it, and the pdf.js viewer needs no token plumbing because the
+ * cookie rides along on /pdf/:uuid requests.
  */
 
 const JWT = require('jsonwebtoken');
@@ -65,14 +64,9 @@ exports.verify = function (token) {
 };
 
 /*
- * Scoped to APP_PATH, not '/'. Everything that reads the session lives under
- * APP_PATH; the only routes outside it are the two legacy redirects, which
- * take no auth. A root-scoped cookie was being sent to every co-hosted app
- * behind the same nginx vhost - /repo and /exhibits-dashboard - which have no
- * business receiving this app's session token.
- *
- * Falls back to '/' when APP_PATH is empty, which is the documented way to
- * mount at the domain root.
+ * Scoped to APP_PATH, not '/': everything that reads the session lives under
+ * APP_PATH, and the routes outside it take no auth. Falls back to '/' when
+ * APP_PATH is empty, the documented way to mount at the domain root.
  */
 function cookie_options() {
 
@@ -105,12 +99,7 @@ exports.clear_cookie = function (res) {
     const options = cookie_options();
     res.clearCookie(COOKIE_NAME, options);
 
-    /*
-     * Also clear a root-scoped cookie, which is what this app set before the
-     * scope was narrowed. A browser holds the two independently and sends
-     * both, so clearing only the APP_PATH one would leave a session issued
-     * before that change alive through logout. Harmless once none are left.
-     */
+    /* also clear the root-scoped cookie earlier versions set; harmless once none are left */
     if (options.path !== '/') {
         res.clearCookie(COOKIE_NAME, Object.assign({}, options, {path: '/'}));
     }

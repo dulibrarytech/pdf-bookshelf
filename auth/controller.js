@@ -28,21 +28,11 @@
  *   5. tbl_users lookup decides the tier, THEN the cookie is minted
  * GET  /logout -> a confirmation page; it changes nothing
  * POST /logout -> clear cookie, then the IdP's sign-out or the signed-out
- *                 page - but only for a request from this origin, so a link
- *                 or form on someone else's page cannot sign people out
+ *                 page - only for a request from this origin
  *
- * Layers 2 and 3 are BUILT AND TESTED BUT OFF BY DEFAULT, because the DU
- * authproxy does not sign its callbacks yet. Enabling them is coordinated
- * with DU IT and is not a change to make here unilaterally - the same
- * position repo-backend-v2 is in. While they are off, identity is whatever
- * the callback POSTs and SSO_HOST is the only thing narrowing who may send
- * it, so SSO_HOST should always be set in a deployed environment. The app
- * logs a warning at boot naming exactly which layers are inactive, so this
- * posture is visible rather than something you have to read config to learn.
- *
- * The two v1 critical holes this replaces: identity was trusted straight from
- * the browser-POSTed body, and the viewer JWT was minted BEFORE any user
- * check. Every attempt here - success or fail - emits a structured audit line.
+ * Layers 2 and 3 stay off until the DU authproxy signs its callbacks;
+ * enabling them is coordinated with DU IT, not done here. Every attempt,
+ * success or fail, emits a structured audit line.
  */
 
 const VALIDATOR = require('validator');
@@ -109,11 +99,9 @@ exports.sso_start = function (req, res) {
     }
 
     /*
-     * Only a caller-supplied ?next rides along. With none, the callback falls
-     * back by tier - dashboard users to the bookshelf, everyone else to the
-     * signed-in page. A default of /dashboard/home here used to defeat that:
-     * a viewer arriving through /login (or the root redirect) signed in and
-     * landed on "You do not have access to the dashboard."
+     * Only a caller-supplied ?next rides along; with none, the callback
+     * routes by tier - dashboard users to the bookshelf, everyone else to
+     * the signed-in page.
      */
     const next = safe_next(req.query.next, '');
     const target = new URL(CONFIG.sso_url);
@@ -131,8 +119,7 @@ exports.sso_start = function (req, res) {
 /**
  * Where a browser should go to try the sign-in again: back through /login,
  * keeping the page it was heading for. Offered on the /sso rate limit's
- * refusal page, where the student has already authenticated upstream and a
- * reload would only re-post the callback.
+ * refusal page.
  * @param req the refused callback
  */
 exports.retry_sign_in_url = function (req) {
@@ -149,14 +136,7 @@ exports.retry_sign_in_url = function (req) {
  */
 exports.sso_callback = async function (req, res) {
 
-    /*
-     * Freshness follows the signature. The signature covers the timestamp
-     * and nonce precisely so that a captured callback cannot be replayed; a
-     * signed callback never checked for them could be replayed for as long
-     * as the secret lives, which is what SSO_REQUIRE_HMAC=1 with
-     * SSO_REQUIRE_FRESHNESS=0 used to allow. The flag on its own still runs
-     * the guard with the signature off, for what little that is worth.
-     */
+    /* freshness follows the signature; SSO_REQUIRE_FRESHNESS alone still runs the guard, unsigned */
     const check_freshness = CONFIG.sso_require_hmac || CONFIG.sso_require_freshness;
 
     const audit = {
@@ -204,7 +184,7 @@ exports.sso_callback = async function (req, res) {
             }
         }
 
-        /* tier decision BEFORE minting anything (v1 minted first, checked later) */
+        /* tier decision before minting anything */
         const user = await MODEL.find_active_user(employee_id);
         const tier = user === undefined ? 'viewer' : 'dashboard';
         audit.tier = tier;
@@ -238,15 +218,6 @@ exports.signed_in = function (req, res) {
     res.render('error', {message: 'You are signed in. Follow a PDF link to open a document.'});
 };
 
-/*
- * Signing out was a GET, so any page could do it to anyone with a link:
- * SameSite=Lax cookies ride along on a top-level navigation. A POST alone
- * would not close that, because a cross-site form submission is a
- * navigation too, and the response's Set-Cookie would still clear the
- * session. What closes it is same_origin() (libs/origin.js): the browser's
- * own word on where the request came from.
- */
-
 /**
  * GET /logout - a confirmation page, for a typed or bookmarked address.
  * Changes nothing; the button on it posts.
@@ -260,11 +231,7 @@ exports.logout_page = function (req, res) {
  */
 exports.logout = function (req, res) {
 
-    /*
-     * A form on someone else's page gets the same confirmation page a typed
-     * address gets, and the session stays. If the person really wants out,
-     * the button on it is a same-origin post.
-     */
+    /* a form on another site gets the confirmation page; only a same-origin post signs out */
     if (!same_origin(req)) {
         res.render('sign-out', {});
         return;
@@ -272,12 +239,7 @@ exports.logout = function (req, res) {
 
     JWT.clear_cookie(res);
 
-    /*
-     * When SSO_LOGOUT_URL is configured, redirect to the IdP's central
-     * signout so the user is logged out everywhere, not just here
-     * (same behavior as repo-backend-v2). The local signed-out page is
-     * the fallback for environments without an IdP (dev).
-     */
+    /* with SSO_LOGOUT_URL, sign out at the IdP as well; the local page is the fallback (dev) */
     if (CONFIG.sso_logout_url) {
         res.redirect(303, CONFIG.sso_logout_url);
         return;
