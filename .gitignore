@@ -13,3 +13,7 @@ public/libs/*
 !public/libs/pdfjs/
 .DS_Store
 .idea/
+# playwright: run output, and the storage directory the e2e app is given
+test-results/
+playwright-report/
+tests/e2e/.storage/

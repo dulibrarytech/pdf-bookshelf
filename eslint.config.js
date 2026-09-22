@@ -34,6 +34,10 @@ module.exports = [
         ignores: [
             'node_modules/**',
             'logs/**',
+            /* what a Playwright run writes: traces, screenshots and the HTML report's own bundles */
+            'test-results/**',
+            'playwright-report/**',
+            'tests/e2e/.storage/**',
             /* the PDF corpus, plus multer's staging directory */
             'storage/**',
             /*
@@ -63,6 +67,19 @@ module.exports = [
             'no-var': 'error',
             /* CLAUDE.md: narrative comments are /* *\/ starred blocks */
             'multiline-comment-style': ['error', 'starred-block']
+        }
+    },
+    {
+        /*
+         * end-to-end specs and their harness: Node code, but the callbacks
+         * they hand to page.evaluate() run in the browser
+         */
+        files: ['tests/e2e/**/*.js', 'playwright.config.js'],
+        languageOptions: {
+            globals: {
+                ...globals.node,
+                ...globals.browser
+            }
         }
     },
     {

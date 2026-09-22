@@ -28,6 +28,31 @@ const { refuse } = require('../libs/refuse');
 const { describe_error } = require('../libs/errors');
 const { describe_listen_error } = require('./validate');
 
+
+/**
+ * form-action sources: this origin, plus the identity provider's when signing
+ * out ends there. Chromium applies form-action to the redirect a form
+ * submission is answered with, so without that origin the sign-out button's
+ * 303 to SSO_LOGOUT_URL is refused and the page simply stays put - while
+ * curl, Firefox and the integration suite all see the redirect go through.
+ * @param logout_url CONFIG.sso_logout_url, possibly unset
+ * @returns {string[]}
+ */
+function form_action_sources(logout_url) {
+
+    const sources = ["'self'"];
+
+    if (logout_url) {
+        try {
+            sources.push(new URL(logout_url).origin);
+        } catch {
+            /* not a URL: sign-out could not get there anyway, so nothing to allow */
+        }
+    }
+
+    return sources;
+}
+
 module.exports = function () {
 
     const APP = EXPRESS();
@@ -86,6 +111,13 @@ module.exports = function () {
                 fontSrc: ["'self'", 'data:'],
                 objectSrc: ["'none'"],
                 frameAncestors: ["'self'"],
+                /*
+                 * where a form may send its data, and - in Chromium - where
+                 * the answer to a form submission may redirect: the sign-out
+                 * button's 303 to the identity provider needs its origin
+                 * here (found by the e2e suite; see form_action_sources)
+                 */
+                formAction: form_action_sources(CONFIG.sso_logout_url),
                 /* pdf.js renders pages in workers from blob: URLs */
                 workerSrc: ["'self'", 'blob:'],
                 /*
@@ -184,3 +216,6 @@ module.exports = function () {
 
     return APP;
 };
+
+/* exported for tests */
+module.exports._form_action_sources = form_action_sources;

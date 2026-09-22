@@ -16,6 +16,8 @@ process.env.SSO_REQUIRE_HMAC = '1';
 process.env.SSO_HMAC_SECRET = 'integration-shared-secret';
 process.env.SSO_REQUIRE_FRESHNESS = '0';
 process.env.SSO_MAX_SKEW_SECONDS = '300';
+/* signing out ends at the identity provider: the CSP must let the form's answer redirect there */
+process.env.SSO_LOGOUT_URL = 'https://idp.example.edu/idp/logout';
 
 const { test, before, after, mock } = require('node:test');
 const assert = require('node:assert/strict');
@@ -124,4 +126,18 @@ test('a signed callback is checked for freshness even with SSO_REQUIRE_FRESHNESS
     const replay = await post(genuine);
     assert.equal(replay.status, 401, 'the same callback again is a replay');
     assert.equal(replay.headers.get('set-cookie'), null);
+});
+
+test("the CSP lets the sign-out form's answer redirect to the identity provider", async () => {
+
+    /*
+     * Chromium applies form-action to the redirect a form submission is
+     * answered with. With 'self' alone the sign-out button's 303 to
+     * SSO_LOGOUT_URL is refused and the page stays put - curl and this
+     * suite would never notice; the e2e suite did.
+     */
+    const response = await fetch(`${base}/bookshelf/logout`);
+
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-security-policy'), /form-action 'self' https:\/\/idp\.example\.edu(;|$)/);
 });

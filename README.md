@@ -16,6 +16,18 @@ npm test              # unit tests (node:test)
 npm run dev           # http://localhost:8005/bookshelf/dashboard/home
 ```
 
+## Tests
+
+`npm test` runs the unit and integration suites (`node --test`; the
+integration suite boots the app on an ephemeral port with the models stubbed).
+`npm run test:e2e` runs the Playwright suite in a real Chromium against a real
+instance: it drops and recreates a `pdf_bookshelf_e2e` database using the
+credentials in `.env`, migrates and seeds it, points storage at
+`tests/e2e/.storage`, starts the app on port 8006, and signs in through a stub
+identity provider that the browser intercepts - nothing reaches the real one.
+Run `npx playwright install chromium` once per machine first. `npm run
+test:all` runs both.
+
 ## Deploying
 
 `npm ci` on the target installs the runtime dependencies - Bootstrap and htmx
